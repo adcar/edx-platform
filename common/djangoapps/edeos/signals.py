@@ -49,7 +49,7 @@ def send_enroll_achievement(sender, instance, created, **kwargs):
                 'student_id': "{}:{}".format(instance.user.email, Site.objects.get_current().domain),
                 'course_id': course_id,
                 'org': org,
-                'event_type': 1,
+                'event_type': 1,  # TODO move to some sort of configs
                 'uid': '{}_{}'.format(instance.user.pk, course_id),
             }
 

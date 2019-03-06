@@ -888,10 +888,10 @@ def dashboard(request):
 
     edeos_post_data = {
         "student_id": request.user.email,
-        "lms_url": Site.objects.get_current().domain,
+        "lms_url": Site.objects.get_current().domain
     }
 
-    respons = requests.post('http://195.160.222.156/api/transactions', data=edeos_post_data)
+    respons = requests.post('http://195.160.222.156/api/transactions', data=edeos_post_data)  # TODO refactor
 
     context.update({
         "edeos_data": json.loads(respons.content)

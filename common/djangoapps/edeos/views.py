@@ -16,7 +16,7 @@ def update_wallet(request):
     if request.method == 'POST' and request.is_ajax():
         data = request.POST.copy()
         if data.get('wallet_name'):
-            resp = requests.post('http://195.160.222.156/api/wallet/update', data={
+            resp = requests.post('http://195.160.222.156/api/wallet/update', data={  # TODO move str to client & settings (here and below)
                 'student_id': request.user.email,
                 'lms_url': Site.objects.get_current().domain,
                 'wallet': data.get('wallet_name')

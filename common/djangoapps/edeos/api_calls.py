@@ -6,9 +6,11 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 
-class APICalls(object):
+class GammaEdeosAPICalls(object):
     """
-    Send user data to the Gamification server
+    Send user data to the Gamification server.
+
+    Data is then sent to Edeos by Gamma.
     """
 
     def __init__(self):

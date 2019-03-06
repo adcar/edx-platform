@@ -78,7 +78,7 @@ def learner_profile_context(request, profile_username, user_is_staff):
         'student_id': request.user.email,
         'lms_url': Site.objects.get_current().domain
     }
-    edeos_resp = requests.post('http://195.160.222.156/api/wallet/balance', data=d)
+    edeos_resp = requests.post('http://195.160.222.156/api/wallet/balance', json=d)  # TODO move str to client & settings
     context = {
         'data': {
             'edeos_balance': json.loads(edeos_resp.content),

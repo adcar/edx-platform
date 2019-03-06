@@ -1067,7 +1067,7 @@ class CourseEnrollment(models.Model):
                     'secret': course.edeos_secret,
                     'key': course.edeos_key,
                     'base_url': course.edeos_base_url,
-                    'path': '/api/transactions/store'
+                    'path': '/api/transactions/store'  # TODO move to client
                 }
                 send_api_request.delay(data)
 

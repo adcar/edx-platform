@@ -353,7 +353,7 @@ def course_info(request, course_id):
             "course_id": course.id.to_deprecated_string()
         }
 
-        respons = requests.post('http://195.160.222.156/api/transactions', data=edeos_post_data)
+        respons = requests.post('http://195.160.222.156/api/transactions', data=edeos_post_data)  # TODO refactor
 
         context.update({
             "edeos_data": json.loads(respons.content)
