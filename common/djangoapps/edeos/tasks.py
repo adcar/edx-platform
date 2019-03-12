@@ -15,9 +15,8 @@ def send_api_request(data):
     Send data to edeos API
     """
     base_url = urljoin(data.get('base_url'), data.get('path', ''))
-    cache_key = '{}:{}:{}:{}'.format(
+    cache_key = '{}:{}:{}'.format(
         data.get('payload', {}).get('student_id'),
-        data.get('payload', {}).get('org'),
         data.get('payload', {}).get('course_id'),
         data.get('payload', {}).get('event_type')
     )
