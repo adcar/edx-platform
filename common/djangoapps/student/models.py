@@ -1069,7 +1069,7 @@ class CourseEnrollment(models.Model):
                     'base_url': course.edeos_base_url,
                     'path': '/api/transactions/store'  # TODO move to client
                 }
-                send_api_request.delay(data)
+                send_api_request.delay(data)  # TODO change to `apply_async()`
 
         super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,
                                            update_fields=update_fields)

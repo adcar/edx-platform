@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 
-class GammaEdeosAPICalls(object):
+class GammaEdeosAPIClient(object):
     """
     Send user data to the Gamification server.
 
@@ -47,3 +47,39 @@ class GammaEdeosAPICalls(object):
             headers=headers,
             verify=False
         )
+
+
+class EdeosApiClientError(object):
+    # TODO
+    pass
+
+
+class EdeosBaseApiClient(object):
+    """
+    Base client communicating with Edeos API directly.
+    """
+    # TODO
+
+    def __init__(self, client_id, client_secret):
+        pass
+
+    def get(self, url, headers=None, can_retry=False):
+        pass
+
+    def post(self, url, payload, headers=None, can_retry=False):
+        pass
+
+
+class EdeosApiClient(EdeosBaseApiClient):
+    """
+    Client communicating with Edeos API directly.
+    """
+    # TODO
+    """
+    /api/wallet/store
+    /api/wallet/update
+    /api/wallet/balance
+    /api/transactions
+    /api/transactions/store
+    """
+    pass
