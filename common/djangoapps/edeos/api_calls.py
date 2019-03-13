@@ -1,9 +1,17 @@
 """
 Send user's achievements to external service during the course progress
 """
+import base64
+import httplib
+import logging
+
 import requests
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+
+
+log = logging.getLogger(__name__)
 
 
 class GammaEdeosAPIClient(object):
@@ -54,32 +62,119 @@ class EdeosApiClientError(object):
     pass
 
 
-class EdeosBaseApiClient(object):
+class EdeosApiClient(object):
     """
-    Base client communicating with Edeos API directly.
-    """
-    # TODO
+    Edeos API client.
 
+    Sends requests to Edeos API directly.
+    Responsible for API credentials issuing and `access_token` refreshing.
+    Communicates with Edeos API endpoints directly.
+
+    Inspired by:
+        https://github.com/raccoongang/xblock-video/blob/dev/video_xblock/backends/brightcove.py
+    """
     def __init__(self, client_id, client_secret):
-        pass
+        """
+        Initialize Edeos API client.
 
-    def get(self, url, headers=None, can_retry=False):
-        pass
+        Arguments:
+            client_id (str): Edeos client id.
+            client_secret (str): Edeos client secret.
+        """
+        self.api_key = client_id
+        self.api_secret = client_secret
+        if client_id and client_secret:
+            self.access_token = self._refresh_access_token()
+        else:
+            self.access_token = ""
 
-    def post(self, url, payload, headers=None, can_retry=False):
-        pass
+    def _refresh_access_token(self, scope=""):
+        """
+        Request new access token to send with requests to Edeos.
+
+        Arguments:
+            scope (str): OAuth permission scope.
+
+        Returns:
+            access_token (str): access token.
+        """
+        url = "http://195.160.222.156/oauth/token"  # TODO configure domain somewhere in settings
+        params = {
+            "grant_type": "client_credentials",
+            "scope": scope
+        }
+        auth_string = base64.encodestring(
+            '{}:{}'.format(self.api_key, self.api_secret)
+        ).replace('\n', '')
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": "Basic " + auth_string
+        }
+        try:
+            resp = requests.post(url, headers=headers, data=params)
+            if resp.status_code == httplib.OK:
+                result = resp.json()
+                return result['access_token']
+        except IOError:
+            log.exception("Connection issue. Couldn't refresh Edeos API access token.")
+            return None
+
+    def post(self, url, payload, headers=None, can_retry=True):
+        """
+        Issue REST POST request to a given URL.
+
+        Arguments:
+            url (str): url to send a request to.
+            payload (dict): request data.
+            headers (dict): request headers.
+            can_retry (bool): indication if requests sending should be retried.
+        """
+        headers_ = {
+            'Authorization': 'Bearer ' + self.access_token,
+            'Content-type': 'application/json'
+        }
+        if headers is not None:
+            headers_.update(headers)
+        resp = requests.post(url, data=payload, headers=headers_)
+        log.info("Edeos response status: {}".format(resp.status_code))
+        if resp.status_code in (httplib.OK, httplib.CREATED):
+            return resp.json()
+
+        elif resp.status_code == httplib.UNAUTHORIZED and can_retry:
+            self.access_token = self._refresh_access_token()
+            return self.post(url, payload, headers, can_retry=False)
+
+        # TODO handle errors
+
+    def wallet_store(self):
+        url = "/api/point/v1/wallet/store"  # TODO: pre-configure domain (here and below)
+
+    def wallet_update(self):
+        url = "/api/point/v1/wallet/update"
+
+    def wallet_balance(self):
+        url = "/api/point/v1/wallet/balance"
+
+    def transactions(self):
+        url = "/api/point/v1/transactions"
+
+    def transactions_store(self):
+        url = "/api/point/v1/transactions/store"
 
 
-class EdeosApiClient(EdeosBaseApiClient):
-    """
-    Client communicating with Edeos API directly.
-    """
-    # TODO
-    """
-    /api/wallet/store
-    /api/wallet/update
-    /api/wallet/balance
-    /api/transactions
-    /api/transactions/store
-    """
-    pass
+if __name__ == "__main__":
+    client_id = ""
+    client_secret = ""
+    client = EdeosApiClient(client_id, client_secret)
+
+    payload = {'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
+               'student_id': 'olena.persianova@gmail.com:example.com',
+               'uid': '30_course-v1:PartnerFY18Q3+DEV279x+course',
+               'event_type': 1,
+               'org': 'PartnerFY18Q3'}
+    api_domain = 'http://195.160.222.156'
+    api_base_url = "/api/point/v1/"
+    api_endpoint_url = "transactions/store"
+    response = client.post(url="{}{}{}".format(api_domain, api_base_url, api_endpoint_url),
+                           payload=payload)
+    print("Edeos response: status - {}, content - {}".format(response.status_code, response.content))

@@ -34,7 +34,7 @@ def generate_wallet(request):
         resp = requests.post('http://195.160.222.156/api/wallet/store', data={
             'student_id': request.user.email,
             'lms_url': Site.objects.get_current().domain,
-        })
+        })  # TODO: refactor
         return HttpResponse(resp.content, content_type="application/json")
     else:
         return HttpResponse(status=405)
