@@ -1,5 +1,7 @@
 """
-Send user's achievements to external service during the course progress
+Send users' achievements to external service.
+
+e.g. students' achievements are sent during the course progress.
 """
 import base64
 import httplib
@@ -57,25 +59,49 @@ class GammaEdeosAPIClient(object):
         )
 
 
-class EdeosApiClientError(object):
-    # TODO
-    pass
-
-
-class EdeosApiClient(object):
+class EdeosApiBaseClientError(Exception):
     """
-    Edeos API client.
+    Base class for Edeos API exceptions.
+
+    Subclasses should provide `error_message`.
+    """
+    error_message = 'An exception occurred.'
+
+    def __init__(self, detail=None):
+        """
+        Initialization of exceptions base class object.
+        """
+        self.detail = detail if detail is not None else self.error_message
+        super(EdeosApiBaseClientError, self).__init__(detail)
+
+    def __str__(self):
+        """
+        Override string representation of exceptions base class object.
+        """
+        return self.detail
+
+
+class EdeosApiClientError(EdeosApiBaseClientError):
+    error_message = 'Edeos API error occurred.'
+
+
+class EdeosApiClientErrorUnauthorized(EdeosApiBaseClientError):
+    error_message = 'Unauthorized call to Edeos API.'
+
+
+class EdeosBaseApiClient(object):
+    """
+    Low-level Edeos API client.
 
     Sends requests to Edeos API directly.
     Responsible for API credentials issuing and `access_token` refreshing.
-    Communicates with Edeos API endpoints directly.
 
     Inspired by:
         https://github.com/raccoongang/xblock-video/blob/dev/video_xblock/backends/brightcove.py
     """
     def __init__(self, client_id, client_secret):
         """
-        Initialize Edeos API client.
+        Initialize base Edeos API client.
 
         Arguments:
             client_id (str): Edeos client id.
@@ -98,7 +124,8 @@ class EdeosApiClient(object):
         Returns:
             access_token (str): access token.
         """
-        url = "http://195.160.222.156/oauth/token"  # TODO configure domain somewhere in settings
+        # TODO pre-configure domain
+        url = "http://195.160.222.156/oauth/token"
         params = {
             "grant_type": "client_credentials",
             "scope": scope
@@ -128,6 +155,9 @@ class EdeosApiClient(object):
             payload (dict): request data.
             headers (dict): request headers.
             can_retry (bool): indication if requests sending should be retried.
+
+        Returns:
+              resp (dict): Edeos response.
         """
         headers_ = {
             'Authorization': 'Bearer ' + self.access_token,
@@ -136,45 +166,102 @@ class EdeosApiClient(object):
         if headers is not None:
             headers_.update(headers)
         resp = requests.post(url, data=payload, headers=headers_)
-        log.info("Edeos response status: {}".format(resp.status_code))
+        log.info("Edeos response: status {}, content {}".format(resp.status_code, resp.content))
         if resp.status_code in (httplib.OK, httplib.CREATED):
             return resp.json()
-
         elif resp.status_code == httplib.UNAUTHORIZED and can_retry:
             self.access_token = self._refresh_access_token()
             return self.post(url, payload, headers, can_retry=False)
+        elif resp.status_code == httplib.UNAUTHORIZED:
+            raise EdeosApiClientErrorUnauthorized
+        else:
+            raise EdeosApiClientError
 
-        # TODO handle errors
 
-    def wallet_store(self):
-        url = "/api/point/v1/wallet/store"  # TODO: pre-configure domain (here and below)
+class EdeosApiClient(EdeosBaseApiClient):
+    """
+    High-level Edeos API client.
 
-    def wallet_update(self):
-        url = "/api/point/v1/wallet/update"
+    Communicates with Edeos API endpoints directly.
+    """
+    def __init__(self, client_id, client_secret, base_url):
+        """
+        Initialize high-level Edeos API client.
 
-    def wallet_balance(self):
-        url = "/api/point/v1/wallet/balance"
+        Arguments:
+            client_id (str): Edeos client id.
+            client_secret (str): Edeos client secret.
+            base_url (url): base API url, e.g.
+                "http://111.111.111.111/api/point/v1/".
+        """
+        self.base_url = base_url
+        super(EdeosApiClient, self).__init__(client_id, client_secret)
 
-    def transactions(self):
-        url = "/api/point/v1/transactions"
+    def call_api(self, endpoint_url, payload):
+        try:
+            response = client.post(
+                url="{}{}".format(self.base_url, endpoint_url),
+                payload=payload)
+            log.info("Edeos '{}' response: status - {}, content - {}".
+                     format(endpoint_url, response.status_code, response.content))
+            return response
+        except (EdeosApiClientError, EdeosApiClientErrorUnauthorized) as e:
+            print("Edeos '{}' call failed. {}".format(endpoint_url, e.__class__.error_message))
+            return None
+        except ValueError as e:
+            log.exception("Edeos '{}' call failed. {}".format(endpoint_url, e.message))
+            return None
 
-    def transactions_store(self):
-        url = "/api/point/v1/transactions/store"
+    # TODO validate payload below (required/optional params)
+
+    def wallet_store(self, payload):
+        return self.call_api("wallet/store", payload)
+
+    def wallet_update(self, payload):
+        return self.call_api("wallet/update", payload)
+
+    def wallet_balance(self, payload):
+        return self.call_api("wallet/balance", payload)
+
+    def transactions(self, payload):
+        return self.call_api("transactions", payload)
+
+    def transactions_store(self, payload):
+        """
+        Store new event data.
+
+        Event examples: course enrollment, certificate issuing.
+
+        Arguments:
+             payload (dict): data on an event to send to Edeos, e.g.
+                 {
+                   'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
+                   'student_id': 'test@gmail.com:example.com',
+                   'uid': '30_course-v1:PartnerFY18Q3+DEV279x+course',
+                   'event_type': 1,
+                   'org': 'PartnerFY18Q3'
+                 }
+
+        Returns:
+              response (dict): Edeos response.
+        """
+        return self.call_api("transactions/store", payload)
 
 
 if __name__ == "__main__":
     client_id = ""
     client_secret = ""
-    client = EdeosApiClient(client_id, client_secret)
+    client = EdeosApiClient(client_id, client_secret, "http://195.160.222.156/api/point/v1/")
 
     payload = {'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
                'student_id': 'olena.persianova@gmail.com:example.com',
                'uid': '30_course-v1:PartnerFY18Q3+DEV279x+course',
                'event_type': 1,
                'org': 'PartnerFY18Q3'}
-    api_domain = 'http://195.160.222.156'
-    api_base_url = "/api/point/v1/"
-    api_endpoint_url = "transactions/store"
-    response = client.post(url="{}{}{}".format(api_domain, api_base_url, api_endpoint_url),
-                           payload=payload)
-    print("Edeos response: status - {}, content - {}".format(response.status_code, response.content))
+    # Endpoints consume different payloads, sure thing
+    response = client.transactions_store(payload=payload)
+    response1 = client.wallet_store(payload=payload)
+    response2 = client.wallet_update(payload=payload)
+    response3 = client.wallet_balance(payload=payload)
+    response4 = client.transactions(payload=payload)
+
