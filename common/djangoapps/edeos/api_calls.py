@@ -99,16 +99,20 @@ class EdeosBaseApiClient(object):
     Inspired by:
         https://github.com/raccoongang/xblock-video/blob/dev/video_xblock/backends/brightcove.py
     """
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id, client_secret, api_address):
         """
         Initialize base Edeos API client.
 
         Arguments:
             client_id (str): Edeos client id.
             client_secret (str): Edeos client secret.
+            api_address (url): Edeos Gate (API) address, e.g.
+                "http://111.111.111.111/". It is configurable on Studio
+                 and might change.
         """
         self.api_key = client_id
         self.api_secret = client_secret
+        self.api_address = api_address
         if client_id and client_secret:
             self.access_token = self._refresh_access_token()
         else:
@@ -125,7 +129,7 @@ class EdeosBaseApiClient(object):
             access_token (str): access token.
         """
         # TODO pre-configure domain
-        url = "http://195.160.222.156/oauth/token"
+        url = self.api_address + "oauth/token"
         params = {
             "grant_type": "client_credentials",
             "scope": scope
@@ -184,18 +188,19 @@ class EdeosApiClient(EdeosBaseApiClient):
 
     Communicates with Edeos API endpoints directly.
     """
-    def __init__(self, client_id, client_secret, base_url):
+    def __init__(self, client_id, client_secret, api_address):
         """
         Initialize high-level Edeos API client.
 
         Arguments:
             client_id (str): Edeos client id.
             client_secret (str): Edeos client secret.
-            base_url (url): base API url, e.g.
-                "http://111.111.111.111/api/point/v1/".
+            api_address (url): Edeos Gate (API) address, e.g.
+                "http://111.111.111.111/". It is configurable on Studio
+                 and might change.
         """
-        self.base_url = base_url
-        super(EdeosApiClient, self).__init__(client_id, client_secret)
+        self.base_url = "{}{}".format(api_address, "api/point/v1/")
+        super(EdeosApiClient, self).__init__(client_id, client_secret, api_address)
 
     def call_api(self, endpoint_url, payload):
         try:
@@ -251,7 +256,7 @@ class EdeosApiClient(EdeosBaseApiClient):
 if __name__ == "__main__":
     client_id = ""
     client_secret = ""
-    client = EdeosApiClient(client_id, client_secret, "http://195.160.222.156/api/point/v1/")
+    client = EdeosApiClient(client_id, client_secret, "http://195.160.222.156/")
 
     payload = {'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
                'student_id': 'olena.persianova@gmail.com:example.com',
