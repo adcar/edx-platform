@@ -39,10 +39,13 @@ def send_edeos_api_request(**kwargs):
         return None
 
 
-# TODO: this could go as a mixin
+# TODO: this could go as a mixin,
+#  but note that it's used not only in `save()` now
 def prepare_edeos_data(model_obj, event_type):
     """
     Prepare and send event data to Edeos.
+
+    Data will be used as "transactions_store" endpoint payload.
 
     Arguments:
         model_obj (instance of a subclass of `django.db.models.Model`): object to collect

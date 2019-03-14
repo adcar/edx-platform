@@ -1027,8 +1027,6 @@ class CourseEnrollment(models.Model):
         ).format(self.user, self.course_id, self.created, self.is_active)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        data = prepare_edeos_data(self, event_type=1)
-        send_api_request.delay(data)  # TODO change to `apply_async()`
         super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,
                                            update_fields=update_fields)
         # Delete the cached status hash, forcing the value to be recalculated the next time it is needed.
@@ -1170,6 +1168,9 @@ class CourseEnrollment(models.Model):
         ENROLL_STATUS_CHANGE.send(sender=None, event=event, user=self.user,
                                   mode=self.mode, course_id=self.course_id,
                                   cost=cost, currency=currency)
+        if event == EnrollStatusChange.enroll:
+            data = prepare_edeos_data(self, event_type=1)
+            send_api_request.delay(data)  # TODO change to `apply_async()`
 
     @classmethod
     def send_signal_full(cls, event, user=user, mode=mode, course_id=course_id, cost=None, currency=None):
