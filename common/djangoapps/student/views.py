@@ -897,9 +897,9 @@ def dashboard(request):
         "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,  # TODO revert to settings
         "base_url": "http://195.160.222.156/api/point/v1/"
     }
-    respons = send_edeos_api_request(**edeos_post_data)
+    response = send_edeos_api_request(**edeos_post_data)
     context.update({
-        "edeos_data": respons
+        "edeos_data": response
     })
     response = render_to_response('dashboard.html', context)
     set_user_info_cookie(response, request)
