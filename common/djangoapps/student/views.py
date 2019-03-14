@@ -893,8 +893,8 @@ def dashboard(request):
             "lms_url":  "lms.example.com"  # Site.objects.get_current().domain  # TODO revert to `Site...`
         },
         "api_endpoint": "transactions",
-        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,
-        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,
+        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,  # TODO revert to settings
+        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,  # TODO revert to settings
         "base_url": "http://195.160.222.156/api/point/v1/"
     }
     respons = send_edeos_api_request(**edeos_post_data)

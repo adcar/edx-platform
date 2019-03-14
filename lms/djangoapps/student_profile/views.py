@@ -82,12 +82,11 @@ def learner_profile_context(request, profile_username, user_is_staff):
             'lms_url': Site.objects.get_current().domain
         },
         "api_endpoint": "wallet_balance",
-        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,
-        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,
+        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,  # TODO revert to settings
+        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,  # TODO revert to settings
         "base_url": "http://195.160.222.156/api/point/v1/"
     }
     edeos_resp = send_edeos_api_request(**d)
-    # edeos_resp = requests.post('http://195.160.222.156/api/wallet/balance', json=d)
     context = {
         'data': {
             'edeos_balance': edeos_resp,  # json.loads(edeos_resp.content),
