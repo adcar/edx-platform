@@ -1055,13 +1055,12 @@ class CourseEnrollment(models.Model):
         if course.edeos_enabled:
             if _is_valid(edeos_fields):
                 payload = {
-                    'student_id': "{}:{}".format(self.user.email, Site.objects.get_current().domain),
+                    'student_id': self.user.email,
                     'course_id': course_id,
                     'org': org,
+                    'lms_url': Site.objects.get_current().domain,  # Site.objects.get_current().domain  # TODO revert to `Site...`
                     'event_type': 1,
-                    'uid': '{}_{}'.format(self.user.pk, course_id),
                 }
-
                 data = {
                     'payload': payload,
                     'secret': course.edeos_secret,
