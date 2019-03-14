@@ -883,18 +883,23 @@ def dashboard(request):
             'ecommerce_payment_page': ecommerce_service.payment_page_url(),
         })
 
-    import requests
     from django.contrib.sites.models import Site
+    from edeos.utils import send_edeos_api_request
+    from edeos.edeos_keys import EDEOS_API_KEY, EDEOS_API_SECRET
 
     edeos_post_data = {
-        "student_id": request.user.email,
-        "lms_url": Site.objects.get_current().domain
+        "payload": {
+            "student_id": request.user.email,
+            "lms_url":  "lms.example.com"  # Site.objects.get_current().domain  # TODO revert to `Site...`
+        },
+        "api_endpoint": "transactions",
+        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,
+        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,
+        "base_url": "http://195.160.222.156/api/point/v1/"
     }
-
-    respons = requests.post('http://195.160.222.156/api/transactions', data=edeos_post_data)  # TODO refactor
-
+    respons = send_edeos_api_request(**edeos_post_data)
     context.update({
-        "edeos_data": json.loads(respons.content)
+        "edeos_data": respons
     })
     response = render_to_response('dashboard.html', context)
     set_user_info_cookie(response, request)

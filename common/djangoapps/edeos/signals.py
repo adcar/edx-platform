@@ -58,5 +58,6 @@ def send_enroll_achievement(sender, instance, created, **kwargs):
                 'secret': course.edeos_secret,
                 'key': course.edeos_key,
                 'base_url': course.edeos_base_url,
+                'api_endpoint': 'transactions_store'
             }
-            send_api_request.delay(data)
+            send_api_request.delay(data)  # TODO change to `apply_async()`

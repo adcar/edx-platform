@@ -6,6 +6,7 @@ e.g. students' achievements are sent during the course progress.
 import base64
 import httplib
 import logging
+from urlparse import urlparse, urljoin
 
 import requests
 
@@ -14,6 +15,15 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 log = logging.getLogger(__name__)
+
+
+ALLOWED_EDEOS_API_ENDPOINTS_NAMES = [
+    "wallet_store",
+    "wallet_update",
+    "wallet_balance",
+    "transactions",
+    "transactions_store"
+]
 
 
 class GammaEdeosAPIClient(object):
@@ -129,7 +139,7 @@ class EdeosBaseApiClient(object):
             access_token (str): access token.
         """
         # TODO pre-configure domain
-        url = self.api_address + "oauth/token"
+        url = urljoin(self.api_address, "oauth/token")
         params = {
             "grant_type": "client_credentials",
             "scope": scope
@@ -165,7 +175,7 @@ class EdeosBaseApiClient(object):
         """
         headers_ = {
             'Authorization': 'Bearer {}'.format(self.access_token),
-            'Content-type': 'application/json',
+            'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
         if headers is not None:
@@ -189,23 +199,27 @@ class EdeosApiClient(EdeosBaseApiClient):
 
     Communicates with Edeos API endpoints directly.
     """
-    def __init__(self, client_id, client_secret, api_address):
+    # TODO pass default `api_scheme_host` from settings
+    def __init__(self, client_id, client_secret, api_scheme_host, api_path="api/point/v1/"):
         """
         Initialize high-level Edeos API client.
 
         Arguments:
             client_id (str): Edeos client id.
             client_secret (str): Edeos client secret.
-            api_address (url): Edeos Gate (API) address, e.g.
+            api_scheme_host (url): Edeos Gate (API) address, e.g.
                 "http://111.111.111.111/". It is configurable on Studio
                  and might change.
+            api_path (url): Edeos Gate (API) path, e.g.
+                "api/point/v1/". It is configurable on Studio
+                 and might change.
         """
-        self.base_url = "{}{}".format(api_address, "api/point/v1/")
-        super(EdeosApiClient, self).__init__(client_id, client_secret, api_address)
+        self.base_url = urljoin(api_scheme_host, api_path)
+        super(EdeosApiClient, self).__init__(client_id, client_secret, api_scheme_host)
 
     def call_api(self, endpoint_url, payload):
         try:
-            response = client.post(
+            response = self.post(
                 url="{}{}".format(self.base_url, endpoint_url),
                 payload=payload)
             return response
@@ -239,11 +253,16 @@ class EdeosApiClient(EdeosBaseApiClient):
         Arguments:
              payload (dict): data on an event to send to Edeos, e.g.
                  {
-                   'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
-                   'student_id': 'test@gmail.com:example.com',
-                   'uid': '30_course-v1:PartnerFY18Q3+DEV279x+course',
-                   'event_type': 1,
-                   'org': 'PartnerFY18Q3'
+                     "student_id": "student@example.com",
+                     "lms_url": "lms.example.com",
+                     "course_id": "course-v1:edX+DemoX+Demo_Course2",
+                     "org": "edX",
+                     "event_type": 1,
+                     "event_details": {
+                         "data1": "value",
+                         "data2": "value",
+                         "data3": 23
+                     }
                  }
 
         Returns:
@@ -257,14 +276,25 @@ if __name__ == "__main__":
     client_secret = ""
     client = EdeosApiClient(client_id, client_secret, "http://195.160.222.156/")
 
-    payload = {'course_id': 'course-v1:PartnerFY18Q3+DEV279x+course',
-               'student_id': 'olena.persianova@gmail.com:example.com',
-               'uid': '30_course-v1:PartnerFY18Q3+DEV279x+course',
-               'event_type': 1,
-               'org': 'PartnerFY18Q3'}
+    payload = {
+        "student_id": "student@example.com",
+        "lms_url": "lms.example.com",
+        "course_id": "course-v1:edX+DemoX+Demo_Course2",
+        "org": "edX",
+        "event_type": 1,
+        "event_details": {
+            "data1": "value",
+            "data2": "value",
+            "data3": 23
+        }
+    }
+
+    payload_tr = {'student_id': 'student@example.com',
+                  'lms_url': 'lms.example.com'}  # 'example.com'
+
     # Endpoints consume different payloads, sure thing
     response = client.transactions_store(payload=payload)
     response1 = client.wallet_store(payload=payload)
     response2 = client.wallet_update(payload=payload)
     response3 = client.wallet_balance(payload=payload)
-    response4 = client.transactions(payload=payload)
+    response4 = client.transactions(payload=payload_tr)

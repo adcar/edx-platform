@@ -73,15 +73,24 @@ def learner_profile_context(request, profile_username, user_is_staff):
     import requests
     import json
     from django.contrib.sites.models import Site
+    from edeos.utils import send_edeos_api_request
+    from edeos.edeos_keys import EDEOS_API_KEY, EDEOS_API_SECRET
 
     d = {
-        'student_id': request.user.email,
-        'lms_url': Site.objects.get_current().domain
+        "payload": {
+            'student_id': request.user.email,
+            'lms_url': Site.objects.get_current().domain
+        },
+        "api_endpoint": "wallet_balance",
+        "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,
+        "secret": EDEOS_API_SECRET,  # settings.EDEOS_API_SECRET,
+        "base_url": "http://195.160.222.156/api/point/v1/"
     }
-    edeos_resp = requests.post('http://195.160.222.156/api/wallet/balance', json=d)  # TODO move str to client & settings
+    edeos_resp = send_edeos_api_request(**d)
+    # edeos_resp = requests.post('http://195.160.222.156/api/wallet/balance', json=d)
     context = {
         'data': {
-            'edeos_balance': json.loads(edeos_resp.content),
+            'edeos_balance': edeos_resp,  # json.loads(edeos_resp.content),
             'profile_user_id': profile_user.id,
             'default_public_account_fields': settings.ACCOUNT_VISIBILITY_CONFIGURATION['public_fields'],
             'default_visibility': settings.ACCOUNT_VISIBILITY_CONFIGURATION['default_visibility'],
