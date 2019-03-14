@@ -8,8 +8,8 @@
             <thead>
                 <tr class="table-responsive">
                     <th scope="col" style="padding: 5px; border:1px solid;">Wallet</th>
-                    <!--<th scope="col" style="padding: 5px; border:1px solid;">transaction_id</th>-->
-                    <!--<th scope="col" style="padding: 5px; border:1px solid;">status</th>-->
+                    <th scope="col" style="padding: 5px; border:1px solid;">transaction_id</th>
+                    <th scope="col" style="padding: 5px; border:1px solid;">status</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">date</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">lms_id</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">event_type</th>
@@ -34,8 +34,8 @@
                         % for transaction in edeos_data[wallet]:
                             <tr>
                                 <td style="border:1px solid;"></td>
-                                <!--<td style="border:1px solid;">${transaction['transaction_id']}</td>-->
-                                <!--<td style="border:1px solid;">${transaction['status']}</td>-->
+                                <td style="border:1px solid;">${transaction['transaction_id']}</td>
+                                <td style="border:1px solid;">${transaction['status']}</td>
                                 <td style="border:1px solid;">${transaction['date']}</td>
                                 <td style="border:1px solid;">${transaction['lms_id']}</td>
                                 <td style="border:1px solid;">${transaction['event_type']}</td>
