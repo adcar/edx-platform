@@ -381,7 +381,7 @@ class GeneratedCertificate(models.Model):
                         'course_id': course_id,
                         'org': org,
                         'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
-                        'event_type': 2,
+                        'event_type': 2,  # TODO: configure mapping
                     }
                     data = {
                         'payload': payload,
