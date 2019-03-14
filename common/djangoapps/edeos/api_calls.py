@@ -164,12 +164,13 @@ class EdeosBaseApiClient(object):
               resp (dict): Edeos response.
         """
         headers_ = {
-            'Authorization': 'Bearer ' + self.access_token,
-            'Content-type': 'application/json'
+            'Authorization': 'Bearer {}'.format(self.access_token),
+            'Content-type': 'application/json',
+            'Accept': 'application/json'
         }
         if headers is not None:
             headers_.update(headers)
-        resp = requests.post(url, data=payload, headers=headers_)
+        resp = requests.post(url, json=payload, headers=headers_)
         log.info("Edeos response: status {}, content {}".format(resp.status_code, resp.content))
         if resp.status_code in (httplib.OK, httplib.CREATED):
             return resp.json()
@@ -207,8 +208,6 @@ class EdeosApiClient(EdeosBaseApiClient):
             response = client.post(
                 url="{}{}".format(self.base_url, endpoint_url),
                 payload=payload)
-            log.info("Edeos '{}' response: status - {}, content - {}".
-                     format(endpoint_url, response.status_code, response.content))
             return response
         except (EdeosApiClientError, EdeosApiClientErrorUnauthorized) as e:
             print("Edeos '{}' call failed. {}".format(endpoint_url, e.__class__.error_message))
@@ -269,4 +268,3 @@ if __name__ == "__main__":
     response2 = client.wallet_update(payload=payload)
     response3 = client.wallet_balance(payload=payload)
     response4 = client.transactions(payload=payload)
-
