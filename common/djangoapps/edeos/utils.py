@@ -9,6 +9,7 @@ from opaque_keys.edx.keys import CourseKey
 from xmodule.modulestore.django import modulestore
 
 from api_calls import ALLOWED_EDEOS_API_ENDPOINTS_NAMES, EdeosApiClient
+from configs import EDEOS_STUDIO_FIELDS
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +40,22 @@ def send_edeos_api_request(**kwargs):
         return None
 
 
+def is_valid_edeos_field(fields):
+    """
+    Check if provided fields are valid.
+
+    Arguments:
+        fields (dict): fields to verify.
+    Returns:
+        verification result (bool)
+    """
+    for field in EDEOS_STUDIO_FIELDS:
+        if not fields.get(field):
+            log.error('Field "{}" is improperly configured.'.format(field))
+            return False
+    return True
+
+
 # TODO: this could go as a mixin,
 #  but note that it's used not only in `save()` now
 def prepare_edeos_data(model_obj, event_type):
@@ -53,19 +70,6 @@ def prepare_edeos_data(model_obj, event_type):
         event_type (int): type of event to send.
             # TODO prepare event types mapping
     """
-    EDEOS_FIELDS = (
-        'edeos_base_url',
-        'edeos_secret',
-        'edeos_key',
-    )
-
-    def _is_valid(fields):
-        for field in EDEOS_FIELDS:
-            if not fields.get(field):
-                log.error('Field "{}" is improperly configured.'.format(field))
-                return False
-        return True
-
     org = model_obj.course_id.org
     course_id = unicode(model_obj.course_id)
     course_key = CourseKey.from_string(course_id)
@@ -76,7 +80,7 @@ def prepare_edeos_data(model_obj, event_type):
         'edeos_base_url': course.edeos_base_url
     }
     if course.edeos_enabled:
-        if _is_valid(edeos_fields):
+        if is_valid_edeos_field(edeos_fields):
             student_id = ""
             if getattr(model_obj, "user", False):
                 student_id = model_obj.user.email
