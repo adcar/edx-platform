@@ -53,6 +53,7 @@ import uuid
 from config_models.models import ConfigurationModel
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Count
@@ -61,9 +62,12 @@ from django.utils.translation import ugettext_lazy as _
 from django_extensions.db.fields import CreationDateTimeField
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
+from opaque_keys.edx.keys import CourseKey
+from xmodule.modulestore.django import modulestore
 
 from badges.events.course_complete import course_badge_check
 from badges.events.course_meta import completion_check, course_group_check
+from edeos.tasks import send_api_request
 from lms.djangoapps.instructor_task.models import InstructorTask
 from openedx.core.djangoapps.signals.signals import COURSE_CERT_AWARDED
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, NoneToEmptyManager
@@ -346,6 +350,47 @@ class GeneratedCertificate(models.Model):
                 mode=self.mode,
                 status=self.status,
             )
+
+            # TODO refactor (for `CourseEnrollment` as well)
+            edeos_FIELDS = (
+                'edeos_base_url',
+                'edeos_secret',
+                'edeos_key',
+            )
+
+            def _is_valid(fields):
+                for field in edeos_FIELDS:
+                    if not fields.get(field):
+                        LOGGER.error('Field "{}" is improperly configured.'.format(field))
+                        return False
+                return True
+
+            org = self.course_id.org
+            course_id = unicode(self.course_id)
+            course_key = CourseKey.from_string(course_id)
+            course = modulestore().get_course(course_key)
+            edeos_fields = {
+                'edeos_secret': course.edeos_secret,
+                'edeos_key': course.edeos_key,
+                'edeos_base_url': course.edeos_base_url
+            }
+            if course.edeos_enabled:
+                if _is_valid(edeos_fields):
+                    payload = {
+                        'student_id': self.user.email,
+                        'course_id': course_id,
+                        'org': org,
+                        'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+                        'event_type': 2,
+                    }
+                    data = {
+                        'payload': payload,
+                        'secret': course.edeos_secret,
+                        'key': course.edeos_key,
+                        'base_url': course.edeos_base_url,
+                        'api_endpoint': 'transactions_store'
+                    }
+                    send_api_request.delay(data)  # TODO change to `apply_async()`
 
 
 class CertificateGenerationHistory(TimeStampedModel):
