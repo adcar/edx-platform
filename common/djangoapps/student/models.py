@@ -47,6 +47,7 @@ import lms.lib.comment_client as cc
 import request_cache
 from certificates.models import GeneratedCertificate
 from course_modes.models import CourseMode
+from edeos.utils import prepare_send_edeos_data
 from enrollment.api import _default_course_mode
 from eventtracking import tracker
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
@@ -1025,54 +1026,9 @@ class CourseEnrollment(models.Model):
         ).format(self.user, self.course_id, self.created, self.is_active)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-
-        from xmodule.modulestore.django import modulestore
-        from django.contrib.sites.models import Site
-        from edeos.tasks import send_api_request
-
-        edeos_FIELDS = (
-            'edeos_base_url',
-            'edeos_secret',
-            'edeos_key',
-        )
-
-        def _is_valid(fields):
-            for field in edeos_FIELDS:
-                if not fields.get(field):
-                    log.error('Field "{}" is improperly configured.'.format(field))
-                    return False
-            return True
-
-        org = self.course_id.org
-        course_id = unicode(self.course_id)
-        course_key = CourseKey.from_string(course_id)
-        course = modulestore().get_course(course_key)
-        edeos_fields = {
-            'edeos_secret': course.edeos_secret,
-            'edeos_key': course.edeos_key,
-            'edeos_base_url': course.edeos_base_url
-        }
-        if course.edeos_enabled:
-            if _is_valid(edeos_fields):
-                payload = {
-                    'student_id': self.user.email,
-                    'course_id': course_id,
-                    'org': org,
-                    'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
-                    'event_type': 1,
-                }
-                data = {
-                    'payload': payload,
-                    'secret': course.edeos_secret,
-                    'key': course.edeos_key,
-                    'base_url': course.edeos_base_url,
-                    'api_endpoint': 'transactions_store'
-                }
-                send_api_request.delay(data)  # TODO change to `apply_async()`
-
+        prepare_send_edeos_data(self, event_type=1)
         super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,
                                            update_fields=update_fields)
-
         # Delete the cached status hash, forcing the value to be recalculated the next time it is needed.
         cache.delete(self.enrollment_status_hash_cache_key(self.user))
 

@@ -345,7 +345,6 @@ def course_info(request, course_id):
             # ENDTODO
         }
 
-        import requests
         from django.contrib.sites.models import Site
         from edeos.utils import send_edeos_api_request
         from edeos.edeos_keys import EDEOS_API_KEY, EDEOS_API_SECRET

@@ -23,6 +23,7 @@ from model_utils.models import TimeStampedModel
 
 import coursewarehistoryextended
 from openedx.core.djangoapps.xmodule_django.models import BlockTypeKeyField, CourseKeyField, LocationKeyField
+from edeos.utils import prepare_send_edeos_data
 
 log = logging.getLogger("edx.courseware")
 
@@ -143,6 +144,20 @@ class StudentModule(models.Model):
 
     def __unicode__(self):
         return unicode(repr(self))
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        event_type = None
+        if self.module_type == "video":
+            event_type = 3
+        elif self.module_type == "problem":
+            event_type = 4
+        if event_type:
+            prepare_send_edeos_data(self, event_type=event_type)
+        super(StudentModule, self).save(force_insert=force_insert,
+                                        force_update=force_update,
+                                        using=using,
+                                        update_fields=update_fields)
 
 
 class BaseStudentModuleHistory(models.Model):

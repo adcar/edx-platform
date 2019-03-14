@@ -4,8 +4,12 @@ Various utils for communication with Edeos API.
 import logging
 from urlparse import urlparse
 
-from api_calls import ALLOWED_EDEOS_API_ENDPOINTS_NAMES, EdeosApiClient
+from django.contrib.sites.models import Site
+from opaque_keys.edx.keys import CourseKey
+from xmodule.modulestore.django import modulestore
 
+from api_calls import ALLOWED_EDEOS_API_ENDPOINTS_NAMES, EdeosApiClient
+from edeos.tasks import send_api_request
 
 log = logging.getLogger(__name__)
 
@@ -34,3 +38,54 @@ def send_edeos_api_request(**kwargs):
     else:
         log.exception("Disallowed Edeos endpoint name: '{}'".format(api_endpoint))
         return None
+
+
+def prepare_send_edeos_data(model_obj, event_type):
+    """
+    Prepare and send event data to Edeos.
+
+    Arguments:
+        model_obj (instance of a subclass of `django.db.models.Model`): object to collect
+            event data from, e.g. `StudentModule` obj.
+        event_type (int): type of event to send.
+            # TODO prepare event types mapping
+    """
+    EDEOS_FIELDS = (
+        'edeos_base_url',
+        'edeos_secret',
+        'edeos_key',
+    )
+
+    def _is_valid(fields):
+        for field in EDEOS_FIELDS:
+            if not fields.get(field):
+                log.error('Field "{}" is improperly configured.'.format(field))
+                return False
+        return True
+
+    org = model_obj.course_id.org
+    course_id = unicode(model_obj.course_id)
+    course_key = CourseKey.from_string(course_id)
+    course = modulestore().get_course(course_key)
+    edeos_fields = {
+        'edeos_secret': course.edeos_secret,
+        'edeos_key': course.edeos_key,
+        'edeos_base_url': course.edeos_base_url
+    }
+    if course.edeos_enabled:
+        if _is_valid(edeos_fields):
+            payload = {
+                'student_id': model_obj.user.email,
+                'course_id': course_id,
+                'org': org,
+                'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+                'event_type': event_type,
+            }
+            data = {
+                'payload': payload,
+                'secret': course.edeos_secret,
+                'key': course.edeos_key,
+                'base_url': course.edeos_base_url,
+                'api_endpoint': 'transactions_store'
+            }
+            send_api_request.delay(data)  # TODO change to `apply_async()`
