@@ -23,7 +23,8 @@ from model_utils.models import TimeStampedModel
 
 import coursewarehistoryextended
 from openedx.core.djangoapps.xmodule_django.models import BlockTypeKeyField, CourseKeyField, LocationKeyField
-from edeos.utils import prepare_send_edeos_data
+from edeos.tasks import send_api_request
+from edeos.utils import prepare_edeos_data
 
 log = logging.getLogger("edx.courseware")
 
@@ -153,7 +154,8 @@ class StudentModule(models.Model):
         elif self.module_type == "problem":
             event_type = 4
         if event_type:
-            prepare_send_edeos_data(self, event_type=event_type)
+            data = prepare_edeos_data(self, event_type=event_type)
+            send_api_request.delay(data)  # TODO change to `apply_async()`
         super(StudentModule, self).save(force_insert=force_insert,
                                         force_update=force_update,
                                         using=using,

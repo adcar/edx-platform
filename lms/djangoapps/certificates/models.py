@@ -67,7 +67,8 @@ from xmodule.modulestore.django import modulestore
 
 from badges.events.course_complete import course_badge_check
 from badges.events.course_meta import completion_check, course_group_check
-from edeos.utils import prepare_send_edeos_data
+from edeos.tasks import send_api_request
+from edeos.utils import prepare_edeos_data
 from lms.djangoapps.instructor_task.models import InstructorTask
 from openedx.core.djangoapps.signals.signals import COURSE_CERT_AWARDED
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, NoneToEmptyManager
@@ -350,7 +351,8 @@ class GeneratedCertificate(models.Model):
                 mode=self.mode,
                 status=self.status,
             )
-            prepare_send_edeos_data(self, event_type=2)
+            data = prepare_edeos_data(self, event_type=2)
+            send_api_request.delay(data)  # TODO change to `apply_async()`
 
 
 class CertificateGenerationHistory(TimeStampedModel):

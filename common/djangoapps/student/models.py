@@ -47,7 +47,8 @@ import lms.lib.comment_client as cc
 import request_cache
 from certificates.models import GeneratedCertificate
 from course_modes.models import CourseMode
-from edeos.utils import prepare_send_edeos_data
+from edeos.tasks import send_api_request
+from edeos.utils import prepare_edeos_data
 from enrollment.api import _default_course_mode
 from eventtracking import tracker
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
@@ -1026,7 +1027,8 @@ class CourseEnrollment(models.Model):
         ).format(self.user, self.course_id, self.created, self.is_active)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        prepare_send_edeos_data(self, event_type=1)
+        data = prepare_edeos_data(self, event_type=1)
+        send_api_request.delay(data)  # TODO change to `apply_async()`
         super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,
                                            update_fields=update_fields)
         # Delete the cached status hash, forcing the value to be recalculated the next time it is needed.

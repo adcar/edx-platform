@@ -9,7 +9,6 @@ from opaque_keys.edx.keys import CourseKey
 from xmodule.modulestore.django import modulestore
 
 from api_calls import ALLOWED_EDEOS_API_ENDPOINTS_NAMES, EdeosApiClient
-from edeos.tasks import send_api_request
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +39,8 @@ def send_edeos_api_request(**kwargs):
         return None
 
 
-def prepare_send_edeos_data(model_obj, event_type):
+# TODO: this could go as a mixin
+def prepare_edeos_data(model_obj, event_type):
     """
     Prepare and send event data to Edeos.
 
@@ -88,4 +88,5 @@ def prepare_send_edeos_data(model_obj, event_type):
                 'base_url': course.edeos_base_url,
                 'api_endpoint': 'transactions_store'
             }
-            send_api_request.delay(data)  # TODO change to `apply_async()`
+            return data
+    return None
