@@ -1058,7 +1058,7 @@ class CourseEnrollment(models.Model):
                     'student_id': self.user.email,
                     'course_id': course_id,
                     'org': org,
-                    'lms_url': Site.objects.get_current().domain,  # Site.objects.get_current().domain  # TODO revert to `Site...`
+                    'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                     'event_type': 1,
                 }
                 data = {

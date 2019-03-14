@@ -353,7 +353,7 @@ def course_info(request, course_id):
         edeos_post_data = {
             "payload": {
                 "student_id": request.user.email,
-                "lms_url": "lms.example.com",  # Site.objects.get_current().domain  # TODO revert to `Site...`
+                'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                 "course_id": course.id.to_deprecated_string()
             },
             "api_endpoint": "transactions",

@@ -28,12 +28,3 @@ def send_api_request(data):
         response = send_edeos_api_request(**data)
         if response:
             cache.set(cache_key, True, 30)
-        """    
-        response = requests.post(base_url, data=data.get('payload'), headers={
-            "HTTP_SECRET": data.get("secret"),
-            "HTTP_KEY": data.get("key")
-        })
-        if response.status_code == 200:
-            cache.set(cache_key, True, 30)
-        log.info("Edeos response: status - {}, content - {}".format(response.status_code, response.content))
-        """
