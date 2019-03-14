@@ -274,6 +274,41 @@ def create_thread(request, course_id, commentable_id):
 
     track_thread_created_event(request, course, thread, follow)
 
+    from django.contrib.sites.models import Site
+    # from edeos.tasks import send_api_request
+    from edeos.utils import send_edeos_api_request
+    from edeos.utils import is_valid_edeos_field
+
+    edeos_fields = {
+        'edeos_secret': course.edeos_secret,
+        'edeos_key': course.edeos_key,
+        'edeos_base_url': course.edeos_base_url
+    }
+    if is_valid_edeos_field(edeos_fields):
+        payload = {
+            'student_id': user.email,
+            'course_id': course_id,  # course_key.to_deprecated_string(),
+            'org': course.org,
+            'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'event_type': 8,
+            'event_detail': {'event_type_verbose': 'new_forum_topic'},
+            "thread_type": post["thread_type"],
+            "commentable_id": commentable_id,
+            # "group_id": cc_thread.get("group_id"),
+            "anonymous": anonymous,
+            "anonymous_to_peers": anonymous_to_peers,
+            # "followed": actions_form.cleaned_data["following"],
+        }
+        data = {
+            'payload': payload,
+            'secret': course.edeos_secret,
+            'key': course.edeos_key,
+            'base_url': course.edeos_base_url,
+            'api_endpoint': 'transactions_store'
+        }
+        response = send_edeos_api_request(**data)
+        # send_api_request(data)  # Celery gets pickle somehow
+
     if request.is_ajax():
         return ajax_content_response(request, course_key, data)
     else:

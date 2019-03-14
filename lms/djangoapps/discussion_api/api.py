@@ -3,7 +3,6 @@ Discussion API internal interface
 """
 import itertools
 from collections import defaultdict
-import logging
 from urllib import urlencode
 from urlparse import urlunparse
 
@@ -37,7 +36,6 @@ from django_comment_common.signals import (
     thread_edited,
     thread_voted
 )
-from django.contrib.sites.models import Site
 from django_comment_common.utils import get_course_discussion_settings
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from lms.djangoapps.discussion_api.pagination import DiscussionAPIPagination
@@ -46,11 +44,6 @@ from lms.lib.comment_client.thread import Thread
 from lms.lib.comment_client.utils import CommentClientRequestError
 from openedx.core.djangoapps.user_api.accounts.views import AccountViewSet
 from openedx.core.lib.exceptions import CourseNotFoundError, DiscussionNotFoundError, PageNotFoundError
-
-from edeos.tasks import send_api_request
-from edeos.utils import is_valid_edeos_field
-
-log = logging.getLogger(__name__)
 
 
 class DiscussionTopic(object):
@@ -850,34 +843,6 @@ def create_thread(request, thread_data):
 
     track_thread_created_event(request, course, cc_thread, actions_form.cleaned_data["following"])
 
-    edeos_fields = {
-        'edeos_secret': course.edeos_secret,
-        'edeos_key': course.edeos_key,
-        'edeos_base_url': course.edeos_base_url
-    }
-    if is_valid_edeos_field(edeos_fields):
-        payload = {
-            'student_id': user.email,
-            'course_id': course_id,
-            'org': course.org,
-            'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
-            'event_type': 8,
-            # 'event_detail': {'event_type_verbose': 'new_forum_topic'},
-            "thread_type": cc_thread.thread_type,
-            "commentable_id": cc_thread.commentable_id,
-            "group_id": cc_thread.get("group_id"),
-            "anonymous": cc_thread.anonymous,
-            "anonymous_to_peers": cc_thread.anonymous_to_peers,
-            "followed": actions_form.cleaned_data["following"],
-        }
-        data = {
-            'payload': payload,
-            'secret': course.edeos_secret,
-            'key': course.edeos_key,
-            'base_url': course.edeos_base_url,
-            'api_endpoint': 'transactions_store'
-        }
-        send_api_request(data)
     return api_thread
 
 
