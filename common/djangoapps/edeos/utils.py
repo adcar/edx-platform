@@ -77,8 +77,13 @@ def prepare_edeos_data(model_obj, event_type):
     }
     if course.edeos_enabled:
         if _is_valid(edeos_fields):
+            student_id = ""
+            if getattr(model_obj, "user", False):
+                student_id = model_obj.user.email
+            elif getattr(model_obj, "student", False):
+                student_id = model_obj.student.email
             payload = {
-                'student_id': model_obj.user.email,
+                'student_id': student_id,
                 'course_id': course_id,
                 'org': org,
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
