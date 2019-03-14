@@ -7,6 +7,7 @@ import urlparse
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.core import exceptions
 from django.http import Http404, HttpResponse, HttpResponseServerError
 from django.utils.translation import ugettext as _
@@ -46,6 +47,9 @@ from django_comment_common.utils import ThreadContext
 from eventtracking import tracker
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from util.file import store_uploaded_file
+
+from edeos.tasks import send_api_request
+from edeos.utils import is_valid_edeos_field
 
 log = logging.getLogger(__name__)
 
@@ -274,11 +278,12 @@ def create_thread(request, course_id, commentable_id):
 
     track_thread_created_event(request, course, thread, follow)
 
-    from django.contrib.sites.models import Site
-    # from edeos.tasks import send_api_request
-    from edeos.utils import send_edeos_api_request
-    from edeos.utils import is_valid_edeos_field
+    if request.is_ajax():
+        response = ajax_content_response(request, course_key, data)
+    else:
+        response = JsonResponse(prepare_content(data, course_key))
 
+    # TODO refactor
     edeos_fields = {
         'edeos_secret': course.edeos_secret,
         'edeos_key': course.edeos_key,
@@ -287,17 +292,17 @@ def create_thread(request, course_id, commentable_id):
     if is_valid_edeos_field(edeos_fields):
         payload = {
             'student_id': user.email,
-            'course_id': course_id,  # course_key.to_deprecated_string(),
+            'course_id': course_id,
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'event_type': 8,
-            'event_detail': {'event_type_verbose': 'new_forum_topic'},
-            "thread_type": post["thread_type"],
-            "commentable_id": commentable_id,
-            # "group_id": cc_thread.get("group_id"),
-            "anonymous": anonymous,
-            "anonymous_to_peers": anonymous_to_peers,
-            # "followed": actions_form.cleaned_data["following"],
+            'event_detail': {
+                'event_type_verbose': 'new_forum_topic',
+                "thread_type": post["thread_type"],
+                "commentable_id": commentable_id,
+                "anonymous": anonymous,
+                "anonymous_to_peers": anonymous_to_peers,
+            }
         }
         data = {
             'payload': payload,
@@ -306,13 +311,9 @@ def create_thread(request, course_id, commentable_id):
             'base_url': course.edeos_base_url,
             'api_endpoint': 'transactions_store'
         }
-        response = send_edeos_api_request(**data)
-        # send_api_request(data)  # Celery gets pickle somehow
+        send_api_request(data)
 
-    if request.is_ajax():
-        return ajax_content_response(request, course_key, data)
-    else:
-        return JsonResponse(prepare_content(data, course_key))
+    return response
 
 
 @require_POST
