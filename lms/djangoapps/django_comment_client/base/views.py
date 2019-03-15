@@ -357,7 +357,7 @@ def update_thread(request, course_id, thread_id):
         return JsonResponse(prepare_content(thread.to_dict(), course_key))
 
 
-def _create_comment(request, course_key, thread_id=None, parent_id=None):
+def _create_comment(request, course_key, thread_id=None, parent_id=None, subcomment=False):
     """
     given a course_key, thread_id, and parent_id, create a comment,
     called from create_comment to do the actual creation
@@ -402,9 +402,38 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None):
     track_comment_created_event(request, course, comment, comment.thread.commentable_id, followed)
 
     if request.is_ajax():
-        return ajax_content_response(request, course_key, comment.to_dict())
+        response = ajax_content_response(request, course_key, comment.to_dict())
     else:
-        return JsonResponse(prepare_content(comment.to_dict(), course.id))
+        response = JsonResponse(prepare_content(comment.to_dict(), course.id))
+
+    # TODO refactor
+    edeos_fields = {
+        'edeos_secret': course.edeos_secret,
+        'edeos_key': course.edeos_key,
+        'edeos_base_url': course.edeos_base_url
+    }
+    if is_valid_edeos_field(edeos_fields):
+        payload = {
+            'student_id': user.email,
+            'course_id': CourseKey.from_string(course.id),  # course_key.to_deprecated_string()
+            'org': course.org,
+            'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'event_type': 10 if subcomment else 9,
+            'event_detail': {
+                'event_type_verbose': 'forum_comment' if subcomment else 'forum_response',
+                "thread_id": thread_id
+            }
+        }
+        data = {
+            'payload': payload,
+            'secret': course.edeos_secret,
+            'key': course.edeos_key,
+            'base_url': course.edeos_base_url,
+            'api_endpoint': 'transactions_store'
+        }
+        send_api_request(data)
+
+    return response
 
 
 @require_POST
@@ -505,7 +534,7 @@ def create_sub_comment(request, course_id, comment_id):
     """
     if is_comment_too_deep(parent=cc.Comment(comment_id)):
         return JsonError(_("Comment level too deep"))
-    return _create_comment(request, CourseKey.from_string(course_id), parent_id=comment_id)
+    return _create_comment(request, CourseKey.from_string(course_id), parent_id=comment_id, subcomment=False)
 
 
 @require_POST
