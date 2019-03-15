@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators import csrf
 from django.views.decorators.http import require_GET, require_POST
 from opaque_keys.edx.keys import CourseKey
+from xmodule.modulestore.django import modulestore
 
 import django_comment_client.settings as cc_settings
 import lms.lib.comment_client as cc
@@ -585,6 +586,36 @@ def vote_for_comment(request, course_id, comment_id, value):
     comment = cc.Comment.find(comment_id)
     result = _vote_or_unvote(request, course_id, comment, value)
     comment_voted.send(sender=None, user=request.user, post=comment)
+
+    # TODO refactor
+    course_key = CourseKey.from_string(course_id)
+    course = modulestore().get_course(course_key)
+    edeos_fields = {
+        'edeos_secret': course.edeos_secret,
+        'edeos_key': course.edeos_key,
+        'edeos_base_url': course.edeos_base_url
+    }
+    if is_valid_edeos_field(edeos_fields):
+        payload = {
+            'student_id': request.user.email,
+            'course_id': course_id,
+            'org': course.org,
+            'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(comment_id)),
+            'event_type': 11,
+            'event_detail': {
+                'event_type_verbose': 'forum_comment_vote',
+            }
+        }
+        data = {
+            'payload': payload,
+            'secret': course.edeos_secret,
+            'key': course.edeos_key,
+            'base_url': course.edeos_base_url,
+            'api_endpoint': 'transactions_store'
+        }
+        send_api_request(data)
+
     return result
 
 
@@ -610,6 +641,36 @@ def vote_for_thread(request, course_id, thread_id, value):
     thread = cc.Thread.find(thread_id)
     result = _vote_or_unvote(request, course_id, thread, value)
     thread_voted.send(sender=None, user=request.user, post=thread)
+
+    # TODO refactor
+    course_key = CourseKey.from_string(course_id)
+    course = modulestore().get_course(course_key)
+    edeos_fields = {
+        'edeos_secret': course.edeos_secret,
+        'edeos_key': course.edeos_key,
+        'edeos_base_url': course.edeos_base_url
+    }
+    if is_valid_edeos_field(edeos_fields):
+        payload = {
+            'student_id': request.user.email,
+            'course_id': course_id,
+            'org': course.org,
+            'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(thread_id)),
+            'event_type': 14,
+            'event_detail': {
+                'event_type_verbose': 'forum_thread_vote',
+            }
+        }
+        data = {
+            'payload': payload,
+            'secret': course.edeos_secret,
+            'key': course.edeos_key,
+            'base_url': course.edeos_base_url,
+            'api_endpoint': 'transactions_store'
+        }
+        send_api_request(data)
+
     return result
 
 
