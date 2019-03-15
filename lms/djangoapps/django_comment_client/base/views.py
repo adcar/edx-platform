@@ -295,6 +295,7 @@ def create_thread(request, course_id, commentable_id):
             'course_id': course_id,
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'uid': '{}_{}_{}'.format(user.email, course_id, unicode(thread.id)),
             'event_type': 8,
             'event_detail': {
                 'event_type_verbose': 'new_forum_topic',
@@ -413,14 +414,17 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None, subcomm
         'edeos_base_url': course.edeos_base_url
     }
     if is_valid_edeos_field(edeos_fields):
+        course_id = course_key.to_deprecated_string()
+        student_id = user.email
         payload = {
-            'student_id': user.email,
+            'student_id': student_id,
             'course_id': course_key.to_deprecated_string(),
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
-            'event_type': 10 if subcomment else 9,
+            'event_type': 9,
+            'uid': '{}_{}_{}_{}_{}'.format(student_id, course_id, parent_id, thread_id, unicode(comment.id)),
             'event_detail': {
-                'event_type_verbose': 'forum_comment' if subcomment else 'forum_response',
+                'event_type_verbose': 'forum_comment',
                 "thread_id": thread_id
             }
         }
