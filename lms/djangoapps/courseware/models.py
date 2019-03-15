@@ -149,12 +149,17 @@ class StudentModule(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         event_type = None
+        event_type_verbose = None
         if self.module_type == "video":
             event_type = 3
+            event_type_verbose = "achievement_video"
         elif self.module_type == "problem":
             event_type = 4
+            event_type_verbose = "achievement_problem"
         if event_type:
-            data = prepare_edeos_data(self, event_type=event_type)
+            data = prepare_edeos_data(self,
+                                      event_type=event_type,
+                                      event_detail={"event_type_verbose": event_type_verbose})
             send_api_request.delay(data)  # TODO change to `apply_async()`
         super(StudentModule, self).save(force_insert=force_insert,
                                         force_update=force_update,

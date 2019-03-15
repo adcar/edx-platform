@@ -58,7 +58,7 @@ def is_valid_edeos_field(fields):
 
 # TODO: this could go as a mixin,
 #  but note that it's used not only in `save()` now
-def prepare_edeos_data(model_obj, event_type):
+def prepare_edeos_data(model_obj, event_type, event_detail=None):
     """
     Prepare and send event data to Edeos.
 
@@ -97,7 +97,8 @@ def prepare_edeos_data(model_obj, event_type):
                 'org': org,
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                 'event_type': event_type,
-                'uid': uid
+                'uid': uid,
+                'event_detail': event_detail
             }
             data = {
                 'payload': payload,
