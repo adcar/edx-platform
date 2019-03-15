@@ -11,7 +11,7 @@
                     <th scope="col" style="padding: 5px; border:1px solid;">Wallet</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">transaction_id</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">status</th>
-                    <th scope="col" style="padding: 5px; border:1px solid;">created_at</th>
+                    <th scope="col" style="padding: 5px; border:1px solid;">date</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">lms_id</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">event_type</th>
                     <!--<th scope="col" style="padding: 5px; border:1px solid;">event_detail</th>-->
@@ -39,7 +39,7 @@
                                 <td style="border:1px solid;"></td>
                                 <td style="border:1px solid;">% if transaction_id in transaction: ${transaction['transaction_id']} % endif</td>
                                 <td style="border:1px solid;">% if status in transaction: ${transaction['status']} % endif</td>
-                                <td style="border:1px solid;">% if created_at in transaction: ${transaction['created_at']} % endif</td>
+                                <td style="border:1px solid;">% if date in transaction: ${transaction['date']} % endif</td>
                                 <td style="border:1px solid;">% if lms_id in transaction: ${transaction['lms_id']} % endif</td>
                                 <td style="border:1px solid;">% if event_type in transaction: ${transaction['event_type']} % endif</td>
                                 <!--<td style="border:1px solid;">% if event_detail in transaction: ${transaction['event_detail']} % endif</td>-->
