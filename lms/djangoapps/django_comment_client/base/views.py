@@ -298,7 +298,7 @@ def create_thread(request, course_id, commentable_id):
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'uid': '{}_{}_{}'.format(user.email, course_id, unicode(thread.id)),
             'event_type': 8,
-            'event_detail': {
+            'event_details': {
                 'event_type_verbose': 'new_forum_topic',
                 "thread_type": post["thread_type"],
                 "commentable_id": commentable_id,
@@ -424,7 +424,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None, subcomm
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'event_type': 9,
             'uid': '{}_{}_{}_{}_{}'.format(student_id, course_id, parent_id, thread_id, unicode(comment.id)),
-            'event_detail': {
+            'event_details': {
                 'event_type_verbose': 'forum_comment',
                 "thread_id": thread_id
             }
@@ -603,7 +603,7 @@ def vote_for_comment(request, course_id, comment_id, value):
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(comment_id)),
             'event_type': 11,
-            'event_detail': {
+            'event_details': {
                 'event_type_verbose': 'forum_comment_vote',
             }
         }
@@ -658,7 +658,7 @@ def vote_for_thread(request, course_id, thread_id, value):
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(thread_id)),
             'event_type': 14,
-            'event_detail': {
+            'event_details': {
                 'event_type_verbose': 'forum_thread_vote',
             }
         }

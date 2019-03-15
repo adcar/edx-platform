@@ -353,7 +353,7 @@ class GeneratedCertificate(models.Model):
             )
             data = prepare_edeos_data(self,
                                       event_type=2,
-                                      event_detail={"event_type_verbose": "certificate_generation"})
+                                      event_details={"event_type_verbose": "certificate_generation"})
             send_api_request.delay(data)  # TODO change to `apply_async()`
 
 

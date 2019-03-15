@@ -58,7 +58,7 @@ def is_valid_edeos_field(fields):
 
 # TODO: this could go as a mixin,
 #  but note that it's used not only in `save()` now
-def prepare_edeos_data(model_obj, event_type, event_detail=None):
+def prepare_edeos_data(model_obj, event_type, event_details=None):
     """
     Prepare and send event data to Edeos.
 
@@ -68,6 +68,7 @@ def prepare_edeos_data(model_obj, event_type, event_detail=None):
         model_obj (instance of a subclass of `django.db.models.Model`): object to collect
             event data from, e.g. `StudentModule` obj.
         event_type (int): type of event to send.
+        event_details (dict): details on an event.
             # TODO prepare event types mapping
     """
     org = model_obj.course_id.org
@@ -98,7 +99,7 @@ def prepare_edeos_data(model_obj, event_type, event_detail=None):
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                 'event_type': event_type,
                 'uid': uid,
-                'event_detail': event_detail
+                'event_details': event_details
             }
             data = {
                 'payload': payload,

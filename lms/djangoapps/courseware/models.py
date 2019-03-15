@@ -159,7 +159,7 @@ class StudentModule(models.Model):
         if event_type:
             data = prepare_edeos_data(self,
                                       event_type=event_type,
-                                      event_detail={"event_type_verbose": event_type_verbose})
+                                      event_details={"event_type_verbose": event_type_verbose})
             send_api_request.delay(data)  # TODO change to `apply_async()`
         super(StudentModule, self).save(force_insert=force_insert,
                                         force_update=force_update,

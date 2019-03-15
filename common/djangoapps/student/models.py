@@ -1169,7 +1169,7 @@ class CourseEnrollment(models.Model):
                                   mode=self.mode, course_id=self.course_id,
                                   cost=cost, currency=currency)
         if event == EnrollStatusChange.enroll:
-            data = prepare_edeos_data(self, event_type=1, event_detail={"event_type_verbose": "enrollment"})
+            data = prepare_edeos_data(self, event_type=1, event_details={"event_type_verbose": "enrollment"})
             send_api_request.delay(data)  # TODO change to `apply_async()`
 
     @classmethod
