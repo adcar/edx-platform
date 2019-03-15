@@ -86,12 +86,18 @@ def prepare_edeos_data(model_obj, event_type):
                 student_id = model_obj.user.email
             elif getattr(model_obj, "student", False):
                 student_id = model_obj.student.email
+            uid = ""
+            if event_type == (1 or 2):
+                uid = '{}_{}'.format(model_obj.user.pk, course_id)
+            elif event_type == (3 or 4):
+                uid = unicode(model_obj.module_state_key)
             payload = {
                 'student_id': student_id,
                 'course_id': course_id,
                 'org': org,
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                 'event_type': event_type,
+                'uid': uid
             }
             data = {
                 'payload': payload,
