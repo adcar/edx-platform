@@ -415,7 +415,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None, subcomm
     if is_valid_edeos_field(edeos_fields):
         payload = {
             'student_id': user.email,
-            'course_id': CourseKey.from_string(course.id),  # course_key.to_deprecated_string()
+            'course_id': course_key.to_deprecated_string(),
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
             'event_type': 10 if subcomment else 9,
@@ -566,6 +566,7 @@ def _vote_or_unvote(request, course_id, obj, value='up', undo_vote=False):
         # (People could theoretically downvote by handcrafting AJAX requests.)
     else:
         user.vote(obj, value)
+
     track_voted_event(request, course, obj, value, undo_vote)
     return JsonResponse(prepare_content(obj.to_dict(), course_key))
 
