@@ -17,8 +17,6 @@
                     <!--<th scope="col" style="padding: 5px; border:1px solid;">event_detail</th>-->
                     <th scope="col" style="padding: 5px; border:1px solid;">course_id</th>
                     <th scope="col" style="padding: 5px; border:1px solid;">amount</th>
-                    <!--<th scope="col" style="padding: 5px; border:1px solid;">updated_at</th>-->
-                    <!--<th scope="col" style="padding: 5px; border:1px solid;">deleted_at</th>-->
                 </tr>
 
             </thead>
@@ -45,8 +43,6 @@
                                 <!--<td style="border:1px solid;">% if event_detail in transaction: ${transaction['event_detail']} % endif</td>-->
                                 <td style="border:1px solid;">% if course_id in transaction: ${transaction['course_id']} % endif</td>
                                 <td style="border:1px solid;">% if amount in transaction: ${transaction['amount']} % endif</td>
-                                <!--<td style="border:1px solid;">${transaction['updated_at']}</td>-->
-                                <!--<td style="border:1px solid;">${transaction['deleted_at']}</td>-->
                             </tr>
                         % endfor
                     </tr>
