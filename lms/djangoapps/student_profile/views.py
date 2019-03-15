@@ -80,6 +80,7 @@ def learner_profile_context(request, profile_username, user_is_staff):
         "payload": {
             'student_id': request.user.email,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'client_id': EDEOS_API_KEY,
         },
         "api_endpoint": "wallet_balance",
         "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,  # TODO revert to settings

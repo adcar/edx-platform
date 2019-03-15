@@ -28,6 +28,7 @@ def update_wallet(request):
                 'payload': {
                     'student_id': request.user.email,
                     'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+                    'client_id': EDEOS_API_KEY,
                     'wallet': data.get('wallet_name')
                 },
                 "api_endpoint": "wallet_update",
@@ -50,6 +51,7 @@ def generate_wallet(request):
             'payload': {
                 'student_id': request.user.email,
                 'lms_url': "lms.example.com",  # Site.objects.get_current().domain  # TODO revert to `Site...`
+                'client_id': EDEOS_API_KEY,
             },
             "api_endpoint": "wallet_store",
             "key": EDEOS_API_KEY,  # settings.EDEOS_API_KEY,  # TODO revert to settings

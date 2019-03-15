@@ -296,6 +296,7 @@ def create_thread(request, course_id, commentable_id):
             'course_id': course_id,
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'client_id': course.edeos_key,
             'uid': '{}_{}_{}'.format(user.email, course_id, unicode(thread.id)),
             'event_type': 8,
             'event_details': {
@@ -422,6 +423,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None, subcomm
             'course_id': course_key.to_deprecated_string(),
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'client_id': course.edeos_key,
             'event_type': 9,
             'uid': '{}_{}_{}_{}_{}'.format(student_id, course_id, parent_id, thread_id, unicode(comment.id)),
             'event_details': {
@@ -601,6 +603,7 @@ def vote_for_comment(request, course_id, comment_id, value):
             'course_id': course_id,
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'client_id': course.edeos_key,
             'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(comment_id)),
             'event_type': 11,
             'event_details': {
@@ -656,6 +659,7 @@ def vote_for_thread(request, course_id, thread_id, value):
             'course_id': course_id,
             'org': course.org,
             'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+            'client_id': course.edeos_key,
             'uid': '{}_{}_{}'.format(request.user.email, course_id, unicode(thread_id)),
             'event_type': 14,
             'event_details': {

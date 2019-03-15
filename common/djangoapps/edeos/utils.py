@@ -77,7 +77,7 @@ def prepare_edeos_data(model_obj, event_type, event_details=None):
     course = modulestore().get_course(course_key)
     edeos_fields = {
         'edeos_secret': course.edeos_secret,
-        'edeos_key': course.edeos_key,
+        'edeos_key': course.edeos_key,  # client id
         'edeos_base_url': course.edeos_base_url
     }
     if course.edeos_enabled:
@@ -97,6 +97,7 @@ def prepare_edeos_data(model_obj, event_type, event_details=None):
                 'course_id': course_id,
                 'org': org,
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+                'client_id': course.edeos_key,
                 'event_type': event_type,
                 'uid': uid,
                 'event_details': event_details

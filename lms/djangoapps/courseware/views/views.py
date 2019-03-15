@@ -353,6 +353,7 @@ def course_info(request, course_id):
             "payload": {
                 "student_id": request.user.email,
                 'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
+                'client_id': EDEOS_API_KEY,
                 "course_id": course.id.to_deprecated_string()
             },
             "api_endpoint": "transactions",
