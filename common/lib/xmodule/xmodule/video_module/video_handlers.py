@@ -27,7 +27,6 @@ from .transcripts_utils import (
     subs_filename
 )
 
-
 log = logging.getLogger(__name__)
 
 
@@ -47,9 +46,12 @@ class VideoStudentViewHandlers(object):
         accepted_keys = [
             'speed', 'saved_video_position', 'transcript_language',
             'transcript_download_format', 'youtube_is_available',
-            'bumper_last_view_date', 'bumper_do_not_show_again'
+            'bumper_last_view_date', 'bumper_do_not_show_again',
+            'total_video_duration', 'saved_video_duration',
+            # TODO: fetch backend video id
+            'video_id',  # TODO fetch from the frontend to avoid platform-dependent video ids
+            'youtube_video_id'  # There might be other videos e.g the ones configured by `video-xblock` TODO handle
         ]
-
         conversions = {
             'speed': json.loads,
             'saved_video_position': RelativeTime.isotime_to_timedelta,
@@ -72,8 +74,52 @@ class VideoStudentViewHandlers(object):
                     if key == 'speed':
                         self.global_speed = self.speed
 
-            return json.dumps({'success': True})
+            is_stopped = False  # Indication if a video was watched till the end
+            if getattr(self, "total_video_duration", False) and getattr(self, "saved_video_duration", False):
+                is_stopped = int(float(self.total_video_duration)) == int(float(self.saved_video_duration))
+            course = self.descriptor.runtime.modulestore.get_course(self.course_id)
 
+            if course.edeos_enabled and is_stopped:
+                from edeos.tasks import send_api_request
+                """
+                edeos_fields = {
+                    'edeos_secret': course.edeos_secret,
+                    'edeos_key': course.edeos_key,  # client id
+                    'edeos_base_url': course.edeos_base_url
+                }
+                """
+                # TODO add the check below
+                # if is_valid_edeos_field(edeos_fields):
+                course_id = unicode(self.course_id)
+                org = course.org
+                student_id = self.runtime.get_real_user(self.runtime.anonymous_student_id).email
+                uid = ""
+                if getattr(self, "video_id", False):
+                    uid = "{}_{}_{}".format(course_id, student_id, self.video_id)
+                elif getattr(self, "youtube_video_id", False):
+                    uid = "{}_{}_{}".format(course_id, student_id, self.youtube_video_id)
+                event_type = 3
+                event_details = {
+                    "event_type_verbose": "achievement_video"
+                }
+                payload = {
+                    'student_id': student_id,
+                    'course_id': course_id,
+                    'org': org,
+                    'client_id': course.edeos_key,
+                    'event_type': event_type,
+                    'uid': uid,
+                    'event_details': event_details
+                }
+                data = {
+                    'payload': payload,
+                    'secret': course.edeos_secret,
+                    'key': course.edeos_key,
+                    'base_url': course.edeos_base_url,
+                    'api_endpoint': 'transactions_store'
+                }
+                send_api_request.delay(data)  # TODO change to `apply_async()`
+            return json.dumps({'success': True})
         log.debug(u"GET {0}".format(data))
         log.debug(u"DISPATCH {0}".format(dispatch))
 

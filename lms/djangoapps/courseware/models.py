@@ -150,12 +150,14 @@ class StudentModule(models.Model):
              update_fields=None):
         event_type = None
         event_details = {}
+        """
         if self.module_type == "video":
             event_type = 3
             event_details = {
                 "event_type_verbose": "achievement_video"
             }
-        elif self.module_type == "problem" and float(str(self.grade)) > 0:
+        """
+        if self.module_type == "problem" and float(str(self.grade)) > 0:
             event_type = 4
             event_details = {
                 "event_type_verbose": "achievement_problem",
@@ -163,6 +165,7 @@ class StudentModule(models.Model):
                 "max_grade": self.max_grade
             }
         if event_type:
+            # import pdb; pdb.set_trace()
             data = prepare_edeos_data(self,
                                       event_type=event_type,
                                       event_details=event_details)
