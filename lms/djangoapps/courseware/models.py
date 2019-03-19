@@ -155,11 +155,11 @@ class StudentModule(models.Model):
             event_details = {
                 "event_type_verbose": "achievement_video"
             }
-        elif self.module_type == "problem":
+        elif self.module_type == "problem" and float(str(self.grade)) > 0:
             event_type = 4
             event_details = {
                 "event_type_verbose": "achievement_problem",
-                "grade": self.grade,  # points
+                "grade": self.grade,
                 "max_grade": self.max_grade
             }
         if event_type:
