@@ -12,11 +12,15 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from edxmako.shortcuts import render_to_response
 from ipware.ip import get_ip
 
+from opaque_keys.edx.keys import CourseKey
 from track import tracker
 from track import contexts
 from track import shim
 from track.models import TrackingLog
 from eventtracking import tracker as eventtracker
+
+from edeos.tasks import send_api_request
+# from instructor.views.api import get_student
 
 
 def log_event(event):
@@ -78,6 +82,20 @@ def user_track(request):
 
     with eventtracker.get_tracker().context('edx.course.browser', context_override):
         eventtracker.emit(name=name, data=data)
+    if name == u"stop_video" or name == "stop_video":
+        event_type = 3
+        event_details = {
+            "event_type_verbose": "achievement_video"
+        }
+        course_id = context_override.get("course_id")
+        course_key = CourseKey.from_string(course_id)
+        if username != "anonymous":
+            from instructor.views.api import get_student
+            student = get_student(username, course_key)
+            student_id = student.email
+        if isinstance(data, dict):
+            video_id = data.get("id")
+        # TODO send event to Edeos
 
     return HttpResponse('success')
 

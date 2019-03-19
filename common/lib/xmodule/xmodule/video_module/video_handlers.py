@@ -48,7 +48,7 @@ class VideoStudentViewHandlers(object):
             'transcript_download_format', 'youtube_is_available',
             'bumper_last_view_date', 'bumper_do_not_show_again',
             'total_video_duration', 'saved_video_duration',
-            # TODO: fetch backend video id
+            'backend_video_id',
             'video_id',  # TODO fetch from the frontend to avoid platform-dependent video ids
             'youtube_video_id'  # There might be other videos e.g the ones configured by `video-xblock` TODO handle
         ]
@@ -80,7 +80,7 @@ class VideoStudentViewHandlers(object):
             course = self.descriptor.runtime.modulestore.get_course(self.course_id)
 
             if course.edeos_enabled and is_stopped:
-                from edeos.tasks import send_api_request
+                from edeos.tasks import send_api_request  # for xmodule, import here
                 """
                 edeos_fields = {
                     'edeos_secret': course.edeos_secret,
@@ -94,10 +94,8 @@ class VideoStudentViewHandlers(object):
                 org = course.org
                 student_id = self.runtime.get_real_user(self.runtime.anonymous_student_id).email
                 uid = ""
-                if getattr(self, "video_id", False):
-                    uid = "{}_{}_{}".format(course_id, student_id, self.video_id)
-                elif getattr(self, "youtube_video_id", False):
-                    uid = "{}_{}_{}".format(course_id, student_id, self.youtube_video_id)
+                if getattr(self, "backend_video_id", False):
+                    uid = "{}_{}_{}".format(course_id, student_id, self.backend_video_id)
                 event_type = 3
                 event_details = {
                     "event_type_verbose": "achievement_video"

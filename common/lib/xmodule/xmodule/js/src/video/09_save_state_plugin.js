@@ -98,6 +98,7 @@
                         saved_video_position: this.state.videoPlayer.currentTime,
                         saved_video_duration: this.state.videoPlayer.currentTime,
                         total_video_duration: this.state.videoPlayer.duration(),
+                        backend_video_id: this.state.id,
                         video_id: this.state.videoPlayer.videoId,
                         youtube_video_id: this.state.youtubeId()
                     };
