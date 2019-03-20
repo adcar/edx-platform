@@ -44,7 +44,7 @@ def send_enroll_achievement(sender, instance, created, **kwargs):
     }
     if course.edeos_enabled:
         if _is_valid(edeos_fields):
-            # TODO add `lms_url` and other params if needed
+            # TODO add other params if needed
             payload = {
                 'student_id': instance.user.email,
                 'course_id': course_id,

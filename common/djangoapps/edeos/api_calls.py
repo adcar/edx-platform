@@ -251,10 +251,9 @@ class EdeosApiClient(EdeosBaseApiClient):
         Event examples: course enrollment, certificate issuing.
 
         Arguments:
-             payload (dict): data on an event to send to Edeos, e.g.
+             payload (dict): data on an event to send to Edeos, for example (extract of payload):
                  {
                      "student_id": "student@example.com",
-                     "lms_url": "lms.example.com",
                      "course_id": "course-v1:edX+DemoX+Demo_Course2",
                      "org": "edX",
                      "event_type": 1,
@@ -269,32 +268,3 @@ class EdeosApiClient(EdeosBaseApiClient):
               response (dict): Edeos response.
         """
         return self.call_api("transactions/store", payload)
-
-
-if __name__ == "__main__":
-    client_id = ""
-    client_secret = ""
-    client = EdeosApiClient(client_id, client_secret, "http://195.160.222.156/")
-
-    payload = {
-        "student_id": "student@example.com",
-        "lms_url": "lms.example.com",
-        "course_id": "course-v1:edX+DemoX+Demo_Course2",
-        "org": "edX",
-        "event_type": 1,
-        "event_details": {
-            "data1": "value",
-            "data2": "value",
-            "data3": 23
-        }
-    }
-
-    payload_tr = {'student_id': 'student@example.com',
-                  'lms_url': 'lms.example.com'}  # 'example.com'
-
-    # Endpoints consume different payloads, sure thing
-    response = client.transactions_store(payload=payload)
-    response1 = client.wallet_store(payload=payload)
-    response2 = client.wallet_update(payload=payload)
-    response3 = client.wallet_balance(payload=payload)
-    response4 = client.transactions(payload=payload_tr)

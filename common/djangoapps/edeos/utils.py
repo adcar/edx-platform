@@ -96,7 +96,6 @@ def prepare_edeos_data(model_obj, event_type, event_details=None):
                 'student_id': student_id,
                 'course_id': course_id,
                 'org': org,
-                'lms_url': "{}.{}".format("lms", Site.objects.get_current().domain),
                 'client_id': course.edeos_key,
                 'event_type': event_type,
                 'uid': uid,

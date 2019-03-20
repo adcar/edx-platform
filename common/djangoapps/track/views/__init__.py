@@ -95,7 +95,6 @@ def user_track(request):
             video_id = None
             if isinstance(data, dict):
                 video_id = data.get("id")
-                # import pdb; pdb.set_trace()
             if video_id:
                 payload = {
                     'student_id': student_id,
