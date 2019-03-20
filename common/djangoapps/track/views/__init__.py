@@ -18,6 +18,7 @@ from track import contexts
 from track import shim
 from track.models import TrackingLog
 from eventtracking import tracker as eventtracker
+from xmodule.modulestore.django import modulestore
 
 from edeos.tasks import send_api_request
 # from instructor.views.api import get_student
@@ -82,20 +83,37 @@ def user_track(request):
 
     with eventtracker.get_tracker().context('edx.course.browser', context_override):
         eventtracker.emit(name=name, data=data)
-    if name == u"stop_video" or name == "stop_video":
-        event_type = 3
-        event_details = {
-            "event_type_verbose": "achievement_video"
-        }
+
+    if (name == u"stop_video" or name == "stop_video") and username != "anonymous":
         course_id = context_override.get("course_id")
         course_key = CourseKey.from_string(course_id)
-        if username != "anonymous":
+        course = modulestore().get_course(course_key)
+        if course.edeos_enabled:
             from instructor.views.api import get_student
             student = get_student(username, course_key)
             student_id = student.email
-        if isinstance(data, dict):
-            video_id = data.get("id")
-        # TODO send event to Edeos
+            video_id = None
+            if isinstance(data, dict):
+                video_id = data.get("id")
+                # import pdb; pdb.set_trace()
+            if video_id:
+                payload = {
+                    'student_id': student_id,
+                    'course_id': course_id,
+                    'org': course.org,
+                    'client_id': course.edeos_key,
+                    'event_type': 3,
+                    'uid': video_id,
+                    'event_details': {"event_type_verbose": "achievement_video"}
+                }
+                data = {
+                    'payload': payload,
+                    'secret': course.edeos_secret,
+                    'key': course.edeos_key,
+                    'base_url': course.edeos_base_url,
+                    'api_endpoint': 'transactions_store'
+                }
+                send_api_request.delay(data)  # TODO change to `apply_async()`
 
     return HttpResponse('success')
 
