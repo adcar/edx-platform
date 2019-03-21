@@ -165,7 +165,6 @@ class StudentModule(models.Model):
                 "max_grade": self.max_grade
             }
         if event_type:
-            # import pdb; pdb.set_trace()
             data = prepare_edeos_data(self,
                                       event_type=event_type,
                                       event_details=event_details)
