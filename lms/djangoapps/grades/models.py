@@ -642,6 +642,29 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
         cls._emit_grade_calculated_event(grade)
         return grade
 
+
+    @classmethod
+    def update_or_create_course_grade(cls, user_id, course_id, **kwargs):
+        """
+        Creates a course grade in the database.
+        Returns a PersistedCourseGrade object.
+        """
+        passed = kwargs.pop('passed')
+
+        if kwargs.get('course_version', None) is None:
+            kwargs['course_version'] = ""
+
+        grade, _ = cls.objects.update_or_create(
+            user_id=user_id,
+            course_id=course_id,
+            defaults=kwargs
+        )
+        if passed and not grade.passed_timestamp:
+            grade.passed_timestamp = now()
+            grade.save()
+        cls._emit_grade_calculated_event(grade)
+        return grade
+
     @staticmethod
     def _emit_grade_calculated_event(grade):
         """

@@ -9,11 +9,12 @@ from django.conf import settings
 from lazy import lazy
 
 from xmodule import block_metadata_utils
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED, COURSE_GRADE_UPDATED_CREATED
 
 from ..models import PersistentCourseGrade
 from .subsection_grade import ZeroSubsectionGrade
 from .subsection_grade_factory import SubsectionGradeFactory
-from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED, COURSE_GRADE_UPDATED_CREATED
+from ..transformer import GradesTransformer
 
 
 log = getLogger(__name__)
@@ -207,6 +208,7 @@ class CourseGrade(CourseGradeBase):
     def __init__(self, user, course_data, *args, **kwargs):
         super(CourseGrade, self).__init__(user, course_data, *args, **kwargs)
         self._subsection_grade_factory = SubsectionGradeFactory(user, course_data=course_data)
+        self.course_edited_timestamp = getattr(course_data.course, 'subtree_edited_on', None)
 
     def update(self):
         """
@@ -230,6 +232,17 @@ class CourseGrade(CourseGradeBase):
                 if subsection_grade.all_total.first_attempted:
                     return True
         return False
+
+    @lazy
+    def locations_to_scores(self):
+        """
+        Returns a dict of problem scores keyed by their locations.
+        """
+        locations_to_scores = {}
+        for chapter in self.chapter_grades:
+            for subsection_grade in chapter['sections']:
+                locations_to_scores.update(subsection_grade.locations_to_scores)
+        return locations_to_scores
 
     def _get_subsection_grade(self, subsection):
         # Pass read_only here so the subsection grades can be persisted in bulk at the end.
@@ -274,6 +287,18 @@ class CourseGrade(CourseGradeBase):
         success_cutoff = min(nonzero_cutoffs) if nonzero_cutoffs else None
         return success_cutoff and percent >= success_cutoff
 
+    @staticmethod
+    def get_grading_policy_hash(course_location, course_structure):
+        """
+        Gets the grading policy of the course at the given location
+        in the given course structure.
+        """
+        return course_structure.get_transformer_block_field(
+            course_location,
+            GradesTransformer,
+            'grading_policy_hash'
+        )
+
     def _signal_listeners_when_grade_computed(self):
         """
         Signal all listeners when grades are computed.
@@ -282,8 +307,8 @@ class CourseGrade(CourseGradeBase):
             sender=None,
             user=self.user,  # TODO test, `self.student` (here and below)
             course_grade=self,
-            course_key=self.course.id,
-            deadline=self.course.end
+            course_key=self.course_data.course.id,
+            deadline=self.course_data.course.end
         )
 
         for receiver, response in responses:
@@ -300,8 +325,8 @@ class CourseGrade(CourseGradeBase):
             sender=None,
             user=self.user,
             course_grade=self,
-            course_key=self.course.id,
-            deadline=self.course.end
+            course_key=self.course_data.course.id,
+            deadline=self.course_data.course.end
         )
 
         for receiver, response in responses:
@@ -315,6 +340,9 @@ class CourseGrade(CourseGradeBase):
         Computes the grade for the given student and course.
 
         If read_only is True, doesn't save any updates to the grades.
+
+        Ref.:
+            https://github.com/raccoongang/edx-platform/commit/58339404ce240b17148efa299a506562e4045065
         """
         subsections_total = sum(len(chapter['sections']) for chapter in self.chapter_grades)
 
@@ -324,11 +352,12 @@ class CourseGrade(CourseGradeBase):
         blocks_total = len(self.locations_to_scores)
         if not read_only:
             self._subsection_grade_factory.bulk_create_unsaved()
-            grading_policy_hash = self.get_grading_policy_hash(self.course.location, self.course_data.structure)
+            grading_policy_hash = self.get_grading_policy_hash(self.course_data.course.location,
+                                                               self.course_data.structure)
             PersistentCourseGrade.update_or_create_course_grade(
                 user_id=self.user.id,
-                course_id=self.course.id,
-                course_version=self.course_version,
+                course_id=self.course_data.course.id,
+                # course_version=self.course_version,
                 course_edited_timestamp=self.course_edited_timestamp,
                 grading_policy_hash=grading_policy_hash,
                 percent_grade=self.percent,
@@ -356,6 +385,6 @@ class CourseGrade(CourseGradeBase):
         """
         log_func(u"Persistent Grades: CourseGrade.{0}, course: {1}, user: {2}".format(
             log_statement,
-            self.course.id,
-            self.student.id
+            self.course_data.course.id,
+            self.user.id
         ))
