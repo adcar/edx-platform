@@ -10,8 +10,10 @@ from xblock.scorable import ScorableXBlockMixin, Score
 
 from courseware.model_data import get_score, set_score
 from eventtracking import tracker
+from lms.djangoapps.grades.models import PersistentCourseGrade
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_UPDATED_CREATED
 from openedx.core.lib.grade_utils import is_score_higher_or_equal
-from student.models import user_by_anonymous_id
+from student.models import CourseEnrollment, user_by_anonymous_id
 from submissions.models import score_reset, score_set
 from track.event_transaction_utils import (
     create_new_event_transaction_id,
@@ -20,6 +22,7 @@ from track.event_transaction_utils import (
     set_event_transaction_type
 )
 from util.date_utils import to_timestamp
+from xmodule.modulestore.django import modulestore
 
 from ..constants import ScoreDatabaseTableEnum
 from ..new.course_grade_factory import CourseGradeFactory
@@ -31,6 +34,7 @@ from .signals import (
     SCORE_PUBLISHED,
     SUBSECTION_SCORE_CHANGED
 )
+from edeos.tasks import send_api_request
 
 log = getLogger(__name__)
 
@@ -243,6 +247,56 @@ def recalculate_course_grade(sender, course, course_structure, user, **kwargs): 
     Updates a saved course grade.
     """
     CourseGradeFactory().update(user, course=course, course_structure=course_structure)
+
+
+@receiver(COURSE_GRADE_UPDATED_CREATED)
+def listen_for_grade_calculation_to_send_push(sender, user, course_grade, course_key, deadline, **kwargs):  # pylint: disable=unused-argument
+    """
+    Args:
+        sender: None
+        user(User): User Model object
+        course_grade(CourseGrade): CourseGrade object
+        course_key(CourseKey): The key for the course
+        deadline(datetime): Course end date or None
+
+    Kwargs:
+        kwargs : None
+
+    """
+    if course_grade.percent == 1.0:
+        course_enrollment = CourseEnrollment.objects.get(course_id=course_key, user=user.id)
+        persist_course_grade = PersistentCourseGrade.objects.get(user_id=user.id, course_id=course_key)
+        duration = ((persist_course_grade.passed_timestamp - course_enrollment.created).total_seconds()
+                    if persist_course_grade.passed_timestamp else 0)
+        course = modulestore().get_course(course_key)
+        if course.edeos_enabled:
+            payload = {
+                'student_id': user.email,
+                'course_id': course_key.to_deprecated_string(),
+                'org': course.org,
+                'client_id': course.edeos_key,
+                'event_type': 6,
+                'event_details': {
+                    "event_type_verbose": "course_completion",
+                    "grade": course_grade.percent,  # TODO test
+                    "letter_grade": str(course_grade.letter_grade or ''),
+                    "effort": course_grade.course.total_effort,
+                    "course_level": course_grade.course.course_level if course_grade.course.course_level
+                        else 'Introductory',
+                    "main_topic": course_grade.course.main_topic,
+                    "completation_date": str(persist_course_grade.passed_timestamp or ''),
+                    "skilltag": ', '.join(course_grade.course.skilltag),
+                    "duration": int(round(duration / 3600))
+                }
+            }
+            data = {
+                'payload': payload,
+                'secret': course.edeos_secret,
+                'key': course.edeos_key,
+                'base_url': course.edeos_base_url,
+                'api_endpoint': 'transactions_store'
+                }
+            send_api_request.apply_async(args=(data,))
 
 
 def _emit_event(kwargs):

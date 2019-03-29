@@ -3,14 +3,20 @@ CourseGrade Class
 """
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict
+from logging import getLogger
 
 from django.conf import settings
 from lazy import lazy
 
 from xmodule import block_metadata_utils
 
+from ..models import PersistentCourseGrade
 from .subsection_grade import ZeroSubsectionGrade
 from .subsection_grade_factory import SubsectionGradeFactory
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED, COURSE_GRADE_UPDATED_CREATED
+
+
+log = getLogger(__name__)
 
 
 def uniqueify(iterable):
@@ -267,3 +273,89 @@ class CourseGrade(CourseGradeBase):
         nonzero_cutoffs = [cutoff for cutoff in grade_cutoffs.values() if cutoff > 0]
         success_cutoff = min(nonzero_cutoffs) if nonzero_cutoffs else None
         return success_cutoff and percent >= success_cutoff
+
+    def _signal_listeners_when_grade_computed(self):
+        """
+        Signal all listeners when grades are computed.
+        """
+        responses = COURSE_GRADE_CHANGED.send_robust(
+            sender=None,
+            user=self.user,  # TODO test, `self.student` (here and below)
+            course_grade=self,
+            course_key=self.course.id,
+            deadline=self.course.end
+        )
+
+        for receiver, response in responses:
+            log.debug(
+                'Signal fired when student grade is calculated. Receiver: %s. Response: %s',
+                receiver, response
+            )
+
+    def _signal_listeners_when_grade_updated_created(self):
+        """
+        Signal all listeners when grades are computed.
+        """
+        responses = COURSE_GRADE_UPDATED_CREATED.send_robust(
+            sender=None,
+            user=self.user,
+            course_grade=self,
+            course_key=self.course.id,
+            deadline=self.course.end
+        )
+
+        for receiver, response in responses:
+            log.debug(
+                'Signal fired when student grade is calculated. Receiver: %s. Response: %s',
+                receiver, response
+            )
+
+    def compute_and_update(self, read_only=False):
+        """
+        Computes the grade for the given student and course.
+
+        If read_only is True, doesn't save any updates to the grades.
+        """
+        subsections_total = sum(len(chapter['sections']) for chapter in self.chapter_grades)
+
+        total_graded_subsections = sum(len(x) for x in self.graded_subsections_by_format.itervalues())
+        subsections_created = len(self._subsection_grade_factory._unsaved_subsection_grades)  # pylint: disable=protected-access
+        subsections_read = subsections_total - subsections_created
+        blocks_total = len(self.locations_to_scores)
+        if not read_only:
+            self._subsection_grade_factory.bulk_create_unsaved()
+            grading_policy_hash = self.get_grading_policy_hash(self.course.location, self.course_data.structure)
+            PersistentCourseGrade.update_or_create_course_grade(
+                user_id=self.user.id,
+                course_id=self.course.id,
+                course_version=self.course_version,
+                course_edited_timestamp=self.course_edited_timestamp,
+                grading_policy_hash=grading_policy_hash,
+                percent_grade=self.percent,
+                letter_grade=self.letter_grade or "",
+                passed=self.passed,
+            )
+            self._signal_listeners_when_grade_updated_created()
+
+        self._signal_listeners_when_grade_computed()
+        self._log_event(
+            log.warning,
+            u"compute_and_update, read_only: {0}, subsections read/created: {1}/{2}, blocks accessed: {3}, total "
+            u"graded subsections: {4}".format(
+                read_only,
+                subsections_read,
+                subsections_created,
+                blocks_total,
+                total_graded_subsections,
+            )
+        )
+
+    def _log_event(self, log_func, log_statement):
+        """
+        Logs the given statement, for this instance.
+        """
+        log_func(u"Persistent Grades: CourseGrade.{0}, course: {1}, user: {2}".format(
+            log_statement,
+            self.course.id,
+            self.student.id
+        ))
