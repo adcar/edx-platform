@@ -209,6 +209,8 @@ class CourseGrade(CourseGradeBase):
         super(CourseGrade, self).__init__(user, course_data, *args, **kwargs)
         self._subsection_grade_factory = SubsectionGradeFactory(user, course_data=course_data)
         self.course_edited_timestamp = getattr(course_data.course, 'subtree_edited_on', None)
+        from lms.djangoapps.courseware.courses import get_course_by_id
+        self.course = get_course_by_id(course_data.course_key)
 
     def update(self):
         """
@@ -216,7 +218,7 @@ class CourseGrade(CourseGradeBase):
         if self.force_update_subsections is true, via the lazy call
         to self.grader_result.
         """
-        grade_cutoffs = self.course_data.course.grade_cutoffs
+        grade_cutoffs = self.course.grade_cutoffs
         self.percent = self._compute_percent(self.grader_result)
         self.letter_grade = self._compute_letter_grade(grade_cutoffs, self.percent)
         self.passed = self._compute_passed(grade_cutoffs, self.percent)
@@ -307,8 +309,8 @@ class CourseGrade(CourseGradeBase):
             sender=None,
             user=self.user,  # TODO test, `self.student` (here and below)
             course_grade=self,
-            course_key=self.course_data.course.id,
-            deadline=self.course_data.course.end
+            course_key=self.course.id,
+            deadline=self.course.end
         )
 
         for receiver, response in responses:
@@ -325,8 +327,8 @@ class CourseGrade(CourseGradeBase):
             sender=None,
             user=self.user,
             course_grade=self,
-            course_key=self.course_data.course.id,
-            deadline=self.course_data.course.end
+            course_key=self.course.id,
+            deadline=self.course.end
         )
 
         for receiver, response in responses:
@@ -352,11 +354,11 @@ class CourseGrade(CourseGradeBase):
         blocks_total = len(self.locations_to_scores)
         if not read_only:
             self._subsection_grade_factory.bulk_create_unsaved()
-            grading_policy_hash = self.get_grading_policy_hash(self.course_data.course.location,
+            grading_policy_hash = self.get_grading_policy_hash(self.course.location,
                                                                self.course_data.structure)
             PersistentCourseGrade.update_or_create_course_grade(
                 user_id=self.user.id,
-                course_id=self.course_data.course.id,
+                course_id=self.course.id,
                 # course_version=self.course_version,
                 course_edited_timestamp=self.course_edited_timestamp,
                 grading_policy_hash=grading_policy_hash,
@@ -385,6 +387,6 @@ class CourseGrade(CourseGradeBase):
         """
         log_func(u"Persistent Grades: CourseGrade.{0}, course: {1}, user: {2}".format(
             log_statement,
-            self.course_data.course.id,
+            self.course.id,
             self.user.id
         ))

@@ -43,7 +43,7 @@ class CourseGradeFactory(object):
                 return self._create_zero(user, course_data)
             read_only = True  # keep the grade un-persisted; TODO(TNL-6786) remove once all grades are backfilled
 
-        return self._update(user, course_data, read_only)
+        return self._update(user, course_data, read_only, course=course)
 
     def read(self, user, course=None, collected_block_structure=None, course_structure=None, course_key=None):
         """
@@ -83,6 +83,9 @@ class CourseGradeFactory(object):
         or course_key should be provided.
         """
         course_data = CourseData(user, course, collected_block_structure, course_structure, course_key)
+        import pdb; pdb.set_trace()
+        self._compute_and_update_grade(user, course, course_structure)  # TODO testing
+
         return self._update(user, course_data, read_only=False, force_update_subsections=force_update_subsections)
 
     @contextmanager
@@ -206,7 +209,7 @@ class CourseGradeFactory(object):
                 letter_grade=course_grade.letter_grade or "",
                 passed=course_grade.passed,
             )
-
+        """
         COURSE_GRADE_CHANGED.send_robust(
             sender=None,
             user=user,
@@ -220,10 +223,20 @@ class CourseGradeFactory(object):
                 user=user,
                 course_key=course_data.course_key,
             )
-
+        """
         log.info(
             u'Grades: Update, %s, User: %s, %s, persisted: %s',
             course_data.full_string(), user.id, course_grade, should_persist,
         )
 
+        return course_grade
+
+    def _compute_and_update_grade(self, student, course, course_structure, read_only=False):
+        """
+        Freshly computes and updates the grade for the student and course.
+
+        If read_only is True, doesn't save any updates to the grades.
+        """
+        course_grade = CourseGrade(student, course, course_structure)
+        course_grade.compute_and_update(read_only)
         return course_grade

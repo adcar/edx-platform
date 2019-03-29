@@ -642,7 +642,6 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
         cls._emit_grade_calculated_event(grade)
         return grade
 
-
     @classmethod
     def update_or_create_course_grade(cls, user_id, course_id, **kwargs):
         """

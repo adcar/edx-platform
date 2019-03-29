@@ -9,6 +9,7 @@ from django.dispatch import receiver
 from xblock.scorable import ScorableXBlockMixin, Score
 
 from courseware.model_data import get_score, set_score
+from edeos.tasks import send_api_request
 from eventtracking import tracker
 from lms.djangoapps.grades.models import PersistentCourseGrade
 from openedx.core.djangoapps.signals.signals import COURSE_GRADE_UPDATED_CREATED
@@ -34,7 +35,6 @@ from .signals import (
     SCORE_PUBLISHED,
     SUBSECTION_SCORE_CHANGED
 )
-from edeos.tasks import send_api_request
 
 log = getLogger(__name__)
 
