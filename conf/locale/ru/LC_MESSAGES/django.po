@@ -11902,7 +11902,7 @@ msgstr "Посмотреть все курсы"
 #: lms/templates/dashboard.html lms/templates/user_dropdown.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "Dashboard"
-msgstr "Панель управления"
+msgstr "Мои курсы"
 
 #: lms/templates/dashboard.html themes/edx.org/lms/templates/dashboard.html
 msgid "You are not enrolled in any courses yet."
@@ -16189,10 +16189,10 @@ msgid ""
 "engaging, high-quality {platform_name} courses. Note that you will not be "
 "able to log back into your account until you have activated it."
 msgstr ""
-"Привет!"
-"Используйте нашу ссылку, чтобы активировать свою учетную запись и получить доступ к курсам {platform_name}."
-"{platform_name} - это обучение от ведущих преподавателей и высокое качество полученных знаний онлайн."
-"Жми на ссылку:"
+"Привет! "
+"Используйте нашу ссылку, чтобы активировать свою учетную запись и получить доступ к курсам {platform_name}. "
+"{platform_name} - это обучение от ведущих преподавателей и высокое качество полученных знаний онлайн. "
+"Жми на ссылку: "
 
 #: lms/templates/emails/activation_email.txt
 msgid "Enjoy learning with {platform_name}."
